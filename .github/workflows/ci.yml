@@ -1,0 +1,167 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Backend Tests
+  backend-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-django
+    
+    - name: Run migrations
+      env:
+        DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+      run: |
+        cd backend
+        python manage.py migrate
+    
+    - name: Run tests with coverage
+      env:
+        DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+      run: |
+        cd backend
+        pytest --cov=. --cov-report=xml --cov-report=term
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  # Frontend Tests
+  frontend-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Run linter
+      run: |
+        cd frontend
+        npm run lint
+    
+    - name: Run tests
+      run: |
+        cd frontend
+        npm run test:unit
+    
+    - name: Build
+      run: |
+        cd frontend
+        npm run build
+
+  # Code Quality
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install linting tools
+      run: |
+        pip install black flake8 isort
+    
+    - name: Check code formatting (black)
+      run: |
+        cd backend
+        black --check .
+    
+    - name: Check import sorting (isort)
+      run: |
+        cd backend
+        isort --check-only .
+    
+    - name: Lint with flake8
+      run: |
+        cd backend
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  # Security Check
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Bandit security check
+      run: |
+        pip install bandit
+        cd backend
+        bandit -r . -ll
+
+  # Docker Build Test
+  docker-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker images
+      run: |
+        docker-compose build
+    
+    - name: Test Docker containers
+      run: |
+        docker-compose up -d
+        sleep 10
+        docker-compose ps
+        docker-compose down
