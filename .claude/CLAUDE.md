@@ -56,3 +56,43 @@ Avere un portfolio project che dimostri:
 2. Comprensione del dominio HR automation
 3. Competenza con lo stack Jet HR
 4. Problem solving e design thinking
+
+## Active Skills
+
+### git-learning-project
+Path: `.claude/skills/git-learning-project-skill/SKILL.md`
+
+Use this skill for ALL Git operations:
+- Committing changes
+- Creating branches
+- Updating learning documentation
+- Managing workflow
+
+The skill will guide me through professional commits with:
+- Semantic commit messages
+- Automatic learning notes
+- Progress tracking
+- Quality checks
+```
+
+## Come usarla (esempi pratici)
+
+### Primo commit
+```
+You: "Ready to commit my initial project setup"
+
+Claude: [Attiva automaticamente la skill e ti guida]
+```
+
+### Dopo aver implementato una feature
+```
+You: "Finished US-001, let's commit"
+
+Claude: [Analizza, crea commit strutturato, aggiorna PROGRESS.md]
+```
+
+### Fine settimana
+```
+You: "Create weekly summary commit"
+
+Claude: [Genera retrospettiva dettagliata della settimana]

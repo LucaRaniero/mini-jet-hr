@@ -1,0 +1,41 @@
+{
+  "name": "git-learning-project",
+  "description": "Manage Git versioning for learning projects with semantic commits, automatic learning tracking, branch management, and professional workflow. Use this skill when user wants to commit changes, save progress, version code, push to GitHub, create branches, or update learning documentation. Triggers: 'commit', 'push', 'save progress', 'version this', 'git', 'branch', 'update learning journal', completing a User Story, or end of coding session.",
+  "version": "1.0.0",
+  "author": "Learning Project Framework",
+  "triggers": [
+    "commit changes",
+    "push to git",
+    "save progress",
+    "version this",
+    "create commit",
+    "git commit",
+    "git push",
+    "create branch",
+    "switch branch",
+    "merge branch",
+    "update learning journal",
+    "update progress",
+    "finished US-",
+    "completed user story",
+    "end of session",
+    "save my work"
+  ],
+  "capabilities": [
+    "semantic_commits",
+    "learning_tracking",
+    "branch_management",
+    "pre_commit_checks",
+    "interactive_commit_flow",
+    "progress_documentation"
+  ],
+  "best_for": [
+    "learning projects",
+    "portfolio development",
+    "skill acquisition tracking",
+    "professional git workflow",
+    "junior to mid-level developers",
+    "bootcamp students",
+    "career transitions"
+  ]
+}
