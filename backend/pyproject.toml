@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 127
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 127
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "minijet.settings"
+python_files = ["test_*.py", "tests.py"]

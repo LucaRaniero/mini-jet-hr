@@ -1,0 +1,19 @@
+# Core framework
+Django>=5.1,<5.2
+djangorestframework>=3.15,<4.0
+
+# PostgreSQL adapter
+psycopg2-binary>=2.9,<3.0
+
+# Environment variable management
+django-environ>=0.11,<1.0
+
+# Code quality (matching CI pipeline)
+black>=24.0
+isort>=5.13
+flake8>=7.0
+
+# Testing (matching CI pipeline)
+pytest>=8.0
+pytest-django>=4.8
+pytest-cov>=5.0
