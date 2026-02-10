@@ -4,6 +4,7 @@
 
 [![Project Status](https://img.shields.io/badge/status-in%20progress-yellow)]()
 [![Tech Stack](https://img.shields.io/badge/stack-Django%20%7C%20Vue%20%7C%20Docker%20%7C%20AWS-blue)]()
+[![CI](https://github.com/LucaRaniero/mini-jet-hr/workflows/CI%20Pipeline/badge.svg)](https://github.com/LucaRaniero/mini-jet-hr/actions)
 
 ## 🎯 Project Goal
 

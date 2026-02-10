@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude --list-conversations:*)",
+      "Bash(claude-code --list-conversations:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose run:*)",
+      "Bash(docker-compose exec:*)"
+    ]
+  }
+}
