@@ -73,6 +73,36 @@
 
 **Next steps:**
 - [ ] Build EmployeeList.vue (Vue 3 frontend)
-- [ ] US-002: POST endpoint with validation
+- [x] US-002: POST endpoint with validation
 - [ ] US-003: PUT/PATCH endpoint
 - [ ] US-004: Soft delete endpoint
+
+---
+
+## Session 3 (2026-02-11) - POST Endpoint with Validation (US-002)
+
+**Focus**: US-002 - POST /api/employees/ with hire_date and email validation
+
+**What I built:**
+- Custom field validator: validate_hire_date() to reject future dates
+- 4 new API tests covering all US-002 acceptance criteria
+- Total: 8 tests (4 US-001 + 4 US-002), all passing
+
+**What I learned:**
+- DRF validation cascade: validate_<field>() → validate() → model → DB (like layered CHECK constraints)
+- validate_<field>() convention: DRF auto-discovers methods named `validate_<fieldname>`
+- Pattern: `raise ValidationError("msg")` for invalid, `return value` for valid (like RAISERROR/THROW vs continue)
+- ModelSerializer auto-generates UniqueValidator from model `unique=True` (no manual code needed)
+- HTTP status semantics: 201 Created (POST success) vs 200 OK (GET) vs 204 No Content (DELETE)
+- `python -c` vs `manage.py shell -c`: Django needs bootstrap (settings + app registry) before ORM works
+- Never hardcode "future dates" in tests: use `date.today() + timedelta(days=30)` for reliability
+
+**Key insight:**
+ModelViewSet already handled POST — we only needed to add validation to the Serializer.
+The ViewSet calls `serializer.is_valid()` automatically, and our `validate_hire_date()` runs as part of that cascade.
+Zero changes to views.py!
+
+**Next steps:**
+- [ ] US-003: PUT/PATCH endpoint (update with immutable email)
+- [ ] US-004: DELETE endpoint (soft delete)
+- [ ] Build EmployeeList.vue (Vue 3 frontend)

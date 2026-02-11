@@ -1,3 +1,5 @@
+from datetime import date
+
 from rest_framework import serializers
 
 from .models import Employee
@@ -19,3 +21,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_hire_date(self, value):
+        if value > date.today():
+            raise serializers.ValidationError("La data di assunzione non può essere futura.")
+        return value
