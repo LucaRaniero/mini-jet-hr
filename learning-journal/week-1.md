@@ -31,6 +31,48 @@
 - Docker Compose docs: https://docs.docker.com/compose/
 
 **Next steps:**
-- [ ] Create DRF serializer for Employee model
-- [ ] Implement API ViewSet with filtering and pagination
-- [ ] Understand DRF request/response lifecycle
+- [x] Create DRF serializer for Employee model
+- [x] Implement API ViewSet with filtering and pagination
+- [x] Understand DRF request/response lifecycle
+
+---
+
+## Session 2 (2026-02-11) - DRF Serializer, ViewSet & REST API (US-001)
+
+**Focus**: US-001 - Expose Employee model as REST API with filtering, ordering, pagination
+
+**What I built:**
+- EmployeeSerializer (ModelSerializer) for Python <-> JSON translation
+- EmployeeViewSet (ModelViewSet) with role filtering and ordering
+- URL routing with DefaultRouter (auto-generates list + detail endpoints)
+- Global pagination config (20 items/page)
+- 4 API tests covering all US-001 acceptance criteria
+
+**What I learned:**
+- ModelSerializer = SELECT column list for JSON: `fields` = columns to include, `read_only_fields` = IDENTITY/computed columns
+- read_only_fields must be a SUBSET of fields (it marks them, doesn't add them)
+- ModelViewSet = single class that handles 5 CRUD operations (list, create, retrieve, update, destroy)
+- get_queryset() = the WHERE clause: base filtering (is_active=True) + dynamic filtering from query params
+- Query params are ALWAYS strings: `?is_active=true` arrives as `"true"`, not Python `True`
+- OrderingFilter with ordering_fields = whitelist of sortable columns (security: prevents ORDER BY on arbitrary columns)
+- `?ordering=-hire_date` = ORDER BY hire_date DESC (minus prefix = descending)
+- DefaultRouter auto-generates URL patterns from a ViewSet (like an API gateway)
+- Django URL modularity: each app has its own urls.py, project includes them with path("api/", include("app.urls"))
+- DRF global config in settings.py REST_FRAMEWORK dict, overridable per-ViewSet (like sp_configure vs SET)
+- PageNumberPagination wraps response in {count, next, previous, results} instead of plain array
+- Django test runner creates a temporary test database, runs migrations, destroys it after tests (like BEGIN TRAN/ROLLBACK)
+
+**Key pattern: SQL -> DRF mapping:**
+| SQL | DRF |
+|---|---|
+| SELECT col1, col2 | Serializer fields |
+| CREATE VIEW / Stored Proc | ViewSet |
+| WHERE role = 'x' | get_queryset() filtering |
+| ORDER BY col DESC | OrderingFilter with `-` prefix |
+| OFFSET/FETCH NEXT | PageNumberPagination |
+
+**Next steps:**
+- [ ] Build EmployeeList.vue (Vue 3 frontend)
+- [ ] US-002: POST endpoint with validation
+- [ ] US-003: PUT/PATCH endpoint
+- [ ] US-004: Soft delete endpoint
