@@ -140,5 +140,49 @@ EPIC 1 backend complete! 4 user stories, 13 tests, only 3 files of actual code:
 | Business logic hooks | views.py | Stored procedures |
 
 **Next steps:**
-- [ ] Build EmployeeList.vue (Vue 3 frontend)
+- [x] Build EmployeeList.vue (Vue 3 frontend)
 - [ ] EPIC 2: Contract management
+
+---
+
+## Session 4 (2026-02-12) - Vue 3 Frontend Setup & EmployeeList
+
+**Focus**: First frontend — scaffold Vue 3 + Vite, Tailwind CSS, Docker, CORS, EmployeeList component
+
+**What I built:**
+- Vue 3 + Vite project with Tailwind CSS v4, Vitest, ESLint, Prettier
+- EmployeeList.vue component: fetches employees from API, displays in a styled table
+- Centralized API client (api.js) with configurable base URL via env vars
+- Frontend Docker container (Node 20 Alpine, Vite dev server on port 5173)
+- CORS configuration on Django backend (django-cors-headers)
+- 1 frontend test (App renders header)
+
+**What I learned:**
+- Vue 3 Composition API: `ref()` creates reactive variables — when `.value` changes, the template auto-updates
+- Without `ref()`, a plain `let` variable changes in memory but Vue doesn't know → UI stays stale
+- `onMounted()` lifecycle hook: runs when component appears in DOM (like AFTER INSERT trigger)
+- `v-for` = declarative loop in template (like CURSOR but without manual iteration)
+- `v-if` / `v-else-if` / `v-else` = conditional rendering (like CASE WHEN in SQL)
+- `:key` in v-for = PRIMARY KEY for Vue's DOM diffing algorithm (optimization)
+- `{{ }}` = template interpolation (like CONCAT or PRINT — inserts values into HTML)
+- `async/await` = sugar syntax for Promises (like WAITFOR in T-SQL)
+- `fetch()` = native HTTP client (like requests.get() in Python)
+- CORS = browser security policy blocking cross-origin requests (like a firewall rule)
+- Middleware order matters: CorsMiddleware must come before CommonMiddleware in the pipeline
+- Vite env vars: only `VITE_`-prefixed variables are exposed to the browser (security)
+- Docker anonymous volume (`/app/node_modules`): preserves container's node_modules from being overwritten by Windows mount
+- `--host 0.0.0.0`: required in Docker to expose Vite dev server outside the container
+- Tailwind v4: no config files needed, just `@import "tailwindcss"` and Vite plugin
+- `npm` = pip for JavaScript, `package.json` = requirements.txt
+
+**Key pattern: SQL → Vue 3 mapping:**
+| SQL / Backend | Vue 3 Equivalent |
+|---|---|
+| DECLARE @variable | ref() — reactive variable |
+| EXEC sp_GetData | fetch() — HTTP call to API |
+| CURSOR / WHILE | v-for — declarative loop |
+| IF / CASE WHEN | v-if / v-else — conditional rendering |
+| Trigger ON UPDATE (view refresh) | Reactivity — template auto-updates on ref change |
+
+**Next steps:**
+- [ ] EPIC 2: Contract management (US-005, US-006)
