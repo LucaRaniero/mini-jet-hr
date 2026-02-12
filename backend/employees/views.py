@@ -30,3 +30,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             qs = qs.filter(role=role)
 
         return qs
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()

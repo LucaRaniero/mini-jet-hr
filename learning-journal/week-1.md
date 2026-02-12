@@ -103,6 +103,42 @@ The ViewSet calls `serializer.is_valid()` automatically, and our `validate_hire_
 Zero changes to views.py!
 
 **Next steps:**
-- [ ] US-003: PUT/PATCH endpoint (update with immutable email)
-- [ ] US-004: DELETE endpoint (soft delete)
+- [x] US-003: PUT/PATCH endpoint (update with immutable email)
+- [x] US-004: DELETE endpoint (soft delete)
 - [ ] Build EmployeeList.vue (Vue 3 frontend)
+
+---
+
+## Session 3b (2026-02-12) - Update & Soft Delete (US-003, US-004)
+
+**Focus**: US-003 (PATCH with immutable email) + US-004 (soft delete via perform_destroy)
+
+**What I built:**
+- Email immutability validation: validate_email() checks self.instance to distinguish create vs update
+- Soft delete: perform_destroy() override in ViewSet — sets is_active=False instead of deleting
+- 5 new API tests (3 update + 2 delete)
+- Total: 13 tests across all 4 user stories, all passing
+
+**What I learned:**
+- self.instance in Serializer: `None` during create, the existing object during update — allows conditional validation
+- `=` in Python is assignment, not comparison (my SQL brain confused `SET is_active = False` with `IF is_active = False`)
+- perform_destroy() is a ViewSet hook: DRF calls it when DELETE arrives, we override to change behavior
+- refresh_from_db(): re-reads object from DB after changes — necessary in tests to verify UPDATE worked (like re-running SELECT)
+- test_patch_same_email_allowed: edge case — sending same email in PATCH payload should NOT trigger immutability error
+
+**Key insight:**
+EPIC 1 backend complete! 4 user stories, 13 tests, only 3 files of actual code:
+- models.py (data layer)
+- serializers.py (validation + transformation)
+- views.py (routing + business logic hooks)
+
+**Architecture pattern:**
+| Responsibility | File | SQL equivalent |
+|---|---|---|
+| Data structure | models.py | CREATE TABLE |
+| Validation + transformation | serializers.py | CHECK constraints + triggers |
+| Business logic hooks | views.py | Stored procedures |
+
+**Next steps:**
+- [ ] Build EmployeeList.vue (Vue 3 frontend)
+- [ ] EPIC 2: Contract management

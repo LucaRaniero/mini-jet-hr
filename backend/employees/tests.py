@@ -109,3 +109,76 @@ class EmployeeCreateAPITest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         for field in ["first_name", "last_name", "email", "hire_date"]:
             self.assertIn(field, response.data)
+
+
+class EmployeeUpdateAPITest(TestCase):
+    """Tests for PUT/PATCH /api/employees/{id}/ endpoint (US-003)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+
+    def test_patch_updates_field(self):
+        """PATCH should update only the specified fields."""
+        response = self.client.patch(
+            f"/api/employees/{self.employee.id}/",
+            {"department": "Engineering"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.employee.refresh_from_db()
+        self.assertEqual(self.employee.department, "Engineering")
+
+    def test_patch_email_rejected(self):
+        """PATCH should not allow changing email (immutable field)."""
+        response = self.client.patch(
+            f"/api/employees/{self.employee.id}/",
+            {"email": "new.email@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", response.data)
+
+    def test_patch_same_email_allowed(self):
+        """PATCH with the same email value should be accepted (no actual change)."""
+        response = self.client.patch(
+            f"/api/employees/{self.employee.id}/",
+            {"email": "mario.rossi@example.com", "department": "HR"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class EmployeeDeleteAPITest(TestCase):
+    """Tests for DELETE /api/employees/{id}/ endpoint (US-004)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+
+    def test_delete_soft_deletes(self):
+        """DELETE should set is_active=False, not remove from DB."""
+        response = self.client.delete(f"/api/employees/{self.employee.id}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.employee.refresh_from_db()
+        self.assertFalse(self.employee.is_active)
+        self.assertEqual(Employee.objects.count(), 1)
+
+    def test_deleted_employee_excluded_from_list(self):
+        """A soft-deleted employee should not appear in GET /api/employees/."""
+        self.client.delete(f"/api/employees/{self.employee.id}/")
+        response = self.client.get("/api/employees/")
+        emails = [e["email"] for e in response.data["results"]]
+        self.assertNotIn("mario.rossi@example.com", emails)

@@ -22,6 +22,11 @@ class EmployeeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
+    def validate_email(self, value):
+        if self.instance and value != self.instance.email:
+            raise serializers.ValidationError("L'email non può essere modificata.")
+        return value
+
     def validate_hire_date(self, value):
         if value > date.today():
             raise serializers.ValidationError("La data di assunzione non può essere futura.")
