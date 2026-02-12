@@ -56,20 +56,19 @@ Check out `learning-journal/` for my weekly progress and concepts mastered.
 ## 🚀 Features
 
 ### ✅ Completed
-- [ ] Employee CRUD operations
-- [ ] Contract management
-- [ ] Onboarding automation
-- [ ] Dashboard & analytics
-- [ ] Authentication & role-based permissions
+- [x] Employee CRUD operations (API + frontend list view)
+- [x] Docker containerization (PostgreSQL + Django + Vue)
 
 ### 🏗️ In Progress
-- [ ] Docker containerization
-- [ ] AWS deployment
-- [ ] PDF report generation
+- [ ] Contract management
+- [ ] Authentication & role-based permissions
 
 ### 📋 Planned
+- [ ] Onboarding automation
+- [ ] Dashboard & analytics
+- [ ] PDF report generation
 - [ ] Email notifications
-- [ ] Advanced analytics
+- [ ] AWS deployment
 - [ ] CI/CD pipeline
 
 Full user stories available in [`docs/USER_STORIES.md`](docs/USER_STORIES.md)
@@ -96,7 +95,7 @@ mini-jet-hr/
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 18+
+- Node.js 20+
 - Docker & Docker Compose
 - PostgreSQL 15
 
@@ -185,6 +184,6 @@ MIT License - This is a portfolio/learning project, feel free to use it for your
 
 ---
 
-**Current Status**: 🏗️ Week 1 of 8 | Last updated: 2026/02/07
+**Current Status**: 🏗️ Week 1 of 8 | Last updated: 2026/02/12
 
 *"The best way to learn is to build."*

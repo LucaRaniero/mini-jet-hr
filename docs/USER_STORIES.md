@@ -8,16 +8,16 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 1: Gestione Anagrafica Dipendenti
 *Obiettivo learning: Django models, ORM, Admin, REST API basics*
 
-### US-001: Visualizzare lista dipendenti
-**Come** responsabile HR  
-**Voglio** vedere una lista di tutti i dipendenti  
+### US-001: Visualizzare lista dipendenti ✅
+**Come** responsabile HR
+**Voglio** vedere una lista di tutti i dipendenti
 **Così che** possa avere una visione d'insieme del personale
 
 **Acceptance Criteria:**
-- [ ] Lista mostra: nome, cognome, email, ruolo, data assunzione
-- [ ] Ordinabile per nome e data assunzione
-- [ ] Filtrabile per ruolo (employee, manager, admin)
-- [ ] Paginazione (20 items per pagina)
+- [x] Lista mostra: nome, cognome, email, ruolo, data assunzione
+- [x] Ordinabile per nome e data assunzione
+- [x] Filtrabile per ruolo (employee, manager, admin)
+- [x] Paginazione (20 items per pagina)
 
 **Technical Notes:**
 - Django Model: Employee
@@ -27,15 +27,15 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-002: Creare nuovo dipendente
-**Come** responsabile HR  
-**Voglio** aggiungere un nuovo dipendente al sistema  
+### US-002: Creare nuovo dipendente (API ✅ | Frontend planned)
+**Come** responsabile HR
+**Voglio** aggiungere un nuovo dipendente al sistema
 **Così che** possa gestire l'anagrafica completa
 
 **Acceptance Criteria:**
 - [ ] Form con campi: nome, cognome, email, ruolo, data assunzione, dipartimento
-- [ ] Validazione email univoca
-- [ ] Validazione data assunzione (non futura)
+- [x] Validazione email univoca
+- [x] Validazione data assunzione (non futura)
 - [ ] Messaggio di successo dopo creazione
 - [ ] Redirect alla pagina del dipendente
 
@@ -46,15 +46,15 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-003: Modificare dati dipendente
-**Come** responsabile HR  
-**Voglio** aggiornare le informazioni di un dipendente  
+### US-003: Modificare dati dipendente (API ✅ | Frontend planned)
+**Come** responsabile HR
+**Voglio** aggiornare le informazioni di un dipendente
 **Così che** possa mantenere i dati sempre aggiornati
 
 **Acceptance Criteria:**
 - [ ] Form pre-compilato con dati attuali
-- [ ] Tutti i campi modificabili tranne email (immutabile)
-- [ ] Validazioni come in creazione
+- [x] Tutti i campi modificabili tranne email (immutabile)
+- [x] Validazioni come in creazione
 - [ ] Log delle modifiche (chi, quando, cosa)
 
 **Technical Notes:**
@@ -63,15 +63,15 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-004: Eliminare dipendente (soft delete)
-**Come** responsabile HR  
-**Voglio** rimuovere un dipendente dal sistema  
+### US-004: Eliminare dipendente (soft delete) (API ✅ | Frontend planned)
+**Come** responsabile HR
+**Voglio** rimuovere un dipendente dal sistema
 **Così che** possa gestire uscite senza perdere storico
 
 **Acceptance Criteria:**
 - [ ] Conferma prima dell'eliminazione
-- [ ] Soft delete (is_active=False, non cancellazione fisica)
-- [ ] Dipendenti inattivi non visibili in lista default
+- [x] Soft delete (is_active=False, non cancellazione fisica)
+- [x] Dipendenti inattivi non visibili in lista default
 - [ ] Possibilità di ripristinare dipendente inattivo
 
 **Technical Notes:**
