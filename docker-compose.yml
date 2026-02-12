@@ -38,5 +38,18 @@ services:
       db:
         condition: service_healthy
 
+  # Vue 3 frontend (Vite dev server)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules    # anonymous volume: keep container's node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:

@@ -8,6 +8,9 @@ psycopg2-binary>=2.9,<3.0
 # Environment variable management
 django-environ>=0.11,<1.0
 
+# CORS: allow frontend (different port) to call the API
+django-cors-headers>=4.3,<5.0
+
 # Code quality (matching CI pipeline)
 black>=24.0
 isort>=5.13
