@@ -155,11 +155,14 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-    
+
+    - name: Create .env from example
+      run: cp .env.example .env
+
     - name: Build Docker images
       run: |
         docker compose build
-    
+
     - name: Test Docker containers
       run: |
         docker compose up -d
