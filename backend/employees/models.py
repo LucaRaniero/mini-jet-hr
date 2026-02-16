@@ -28,3 +28,35 @@ class Employee(models.Model):
 
     def __str__(self):
         return f"{self.last_name}, {self.first_name}"
+
+
+class Contract(models.Model):
+    """Contract associated to an employee (US-005).
+
+    A single employee can have multiple contracts over time.
+    The active contract is the one with end_date IS NULL.
+    """
+
+    class ContractType(models.TextChoices):
+        DETERMINATO = "determinato", "Determinato"
+        INDETERMINATO = "indeterminato", "Indeterminato"
+        STAGISTA = "stagista", "Stagista"
+
+    class CCNL(models.TextChoices):
+        METALMECCANICO = "metalmeccanico", "Metalmeccanico"
+        COMMERCIO = "commercio", "Commercio"
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="contracts")
+    contract_type = models.CharField(max_length=50, choices=ContractType.choices)
+    ccnl = models.CharField(max_length=50, choices=CCNL.choices)
+    ral = models.DecimalField(max_digits=10, decimal_places=2)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["employee", "-start_date"]
+
+    def __str__(self):
+        return f"{self.employee} - {self.contract_type}"

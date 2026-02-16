@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from .models import Employee
+from .models import Contract, Employee
 
 
 class EmployeeAPITest(TestCase):
@@ -182,3 +182,112 @@ class EmployeeDeleteAPITest(TestCase):
         response = self.client.get("/api/employees/")
         emails = [e["email"] for e in response.data["results"]]
         self.assertNotIn("mario.rossi@example.com", emails)
+
+
+class ContractAPITest(TestCase):
+    """Tests for /api/employees/{id}/contracts/ endpoint (US-005)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        # Creare l'employee "padre" — come INSERT INTO employees prima di INSERT INTO contracts
+        self.employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        # URL base per i contratti di questo employee
+        self.url = f"/api/employees/{self.employee.id}/contracts/"
+        # Payload valido riusabile (come @valid_payload in EmployeeCreateAPITest)
+        self.valid_payload = {
+            "contract_type": "indeterminato",
+            "ccnl": "metalmeccanico",
+            "ral": "35000.00",
+            "start_date": "2026-01-15",
+        }
+
+    def test_list_contracts_empty(self):
+        """GET should return 200 with empty list when no contracts exist."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"], [])
+
+    def test_create_contract_returns_201(self):
+        """POST with valid payload should return 201 and create the contract."""
+        response = self.client.post(self.url, self.valid_payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Contract.objects.count(), 1)
+        self.assertEqual(Contract.objects.first().employee, self.employee)
+        self.assertEqual(Contract.objects.first().contract_type, "indeterminato")
+
+    def test_contract_employee_from_url(self):
+        """POST should set employee from URL, not from request body."""
+        response = self.client.post(self.url, self.valid_payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["employee"], self.employee.id)
+
+    def test_create_contract_end_date_before_start_date_returns_400(self):
+        """POST with end_date < start_date should return 400."""
+        invalid_payload = self.valid_payload.copy()
+        invalid_payload["end_date"] = "2025-12-31"
+        response = self.client.post(self.url, invalid_payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("end_date", response.data)
+
+    def test_missing_required_fields_returns_400(self):
+        """POST with missing required fields should return 400."""
+        response = self.client.post(self.url, {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        for field in ["contract_type", "ccnl", "ral", "start_date"]:
+            self.assertIn(field, response.data)
+
+    def test_create_contract_nonexistent_employee_returns_404(self):
+        """POST to a non-existent employee should return 404."""
+        # Come: EXEC sp_CreateContract @employee_id = 99999 → "Employee not found"
+        url = "/api/employees/99999/contracts/"
+        response = self.client.post(url, self.valid_payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_patch_close_contract(self):
+        """PATCH with end_date should close an active contract."""
+        # Prima creiamo un contratto attivo (end_date=NULL)
+        self.client.post(self.url, self.valid_payload, format="json")
+        contract = Contract.objects.first()
+        detail_url = f"{self.url}{contract.id}/"
+
+        # Chiudiamo il contratto con PATCH (come UPDATE SET end_date = @date WHERE id = @id)
+        response = self.client.patch(detail_url, {"end_date": "2026-12-31"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        contract.refresh_from_db()
+        self.assertEqual(str(contract.end_date), "2026-12-31")
+
+    def test_delete_contract_hard_deletes(self):
+        """DELETE should permanently remove contract from DB (not soft delete)."""
+        self.client.post(self.url, self.valid_payload, format="json")
+        contract = Contract.objects.first()
+        detail_url = f"{self.url}{contract.id}/"
+
+        response = self.client.delete(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        # Hard delete: il record NON esiste più nel DB
+        self.assertEqual(Contract.objects.count(), 0)
+
+    def test_contracts_isolated_by_employee(self):
+        """Contracts of employee A should not appear under employee B."""
+        # Creiamo un contratto per employee A
+        self.client.post(self.url, self.valid_payload, format="json")
+
+        # Creiamo employee B
+        other = Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna.bianchi@example.com",
+            role="employee",
+            hire_date="2024-06-01",
+        )
+        # GET contratti di employee B → deve essere vuoto
+        other_url = f"/api/employees/{other.id}/contracts/"
+        response = self.client.get(other_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"], [])

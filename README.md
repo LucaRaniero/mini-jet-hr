@@ -16,16 +16,6 @@ This is a portfolio project that demonstrates:
 
 Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/), focusing on their tech stack and problem domain.
 
-## Built with AI-Assisted Learning
-
-This project leverages **Claude Code** as a senior engineering mentor to accelerate learning while ensuring deep understanding of concepts. 
-
-The `.claude/` folder contains my learning methodology and how I've structured the AI collaboration.
-
-**Key principle**: AI explains concepts and guides architecture decisions, I implement and internalize the knowledge through hands-on coding.
-
-Check out `learning-journal/` for my weekly progress and concepts mastered.
-
 ## Architecture
 
 **Current**: Monolithic architecture (matching Jet HR's current approach for speed)  
@@ -59,10 +49,11 @@ Check out `learning-journal/` for my weekly progress and concepts mastered.
 - [x] Employee CRUD operations (API + full frontend: list, create, edit, delete)
 - [x] Vue Router with 3 routes (list, create form, edit form)
 - [x] Docker containerization (PostgreSQL + Django + Vue)
-- [x] 32 automated tests (13 backend + 19 frontend)
+- [x] Contract management API (nested CRUD under employees, 9 tests)
+- [x] 41 automated tests (22 backend + 19 frontend)
 
 ### In Progress
-- [ ] Contract management
+- [ ] Contract management frontend
 - [ ] Authentication & role-based permissions
 
 ### Planned
@@ -176,6 +167,16 @@ Feel free to open issues if you spot:
 - Optimization opportunities
 - Learning resources recommendations
 
+## Built with AI-Assisted Learning
+
+This project leverages **Claude Code** as a senior engineering mentor to accelerate learning while ensuring deep understanding of concepts. 
+
+The `.claude/` folder contains my learning methodology and how I've structured the AI collaboration.
+
+**Key principle**: AI explains concepts and guides architecture decisions, I implement and internalize the knowledge through hands-on coding.
+
+Check out `learning-journal/` for my weekly progress and concepts mastered.
+
 ## License
 
 MIT License - This is a portfolio/learning project, feel free to use it for your own learning.
@@ -186,6 +187,6 @@ MIT License - This is a portfolio/learning project, feel free to use it for your
 
 ---
 
-**Current Status**: Week 1 of 8 | Last updated: 2026/02/16
+**Current Status**: Week 2 of 8 | Last updated: 2026/02/16
 
 *"The best way to learn is to build."*

@@ -83,40 +83,42 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 2: Gestione Contratti
 *Obiettivo learning: Foreign keys, relazioni, file upload*
 
-### US-005: Associare contratto a dipendente
-**Come** responsabile HR  
-**Voglio** caricare e associare un contratto a un dipendente  
+### US-005: Associare contratto a dipendente ✅ (API done, PDF upload deferred)
+**Come** responsabile HR
+**Voglio** caricare e associare un contratto a un dipendente
 **Così che** possa digitalizzare i documenti contrattuali
 
 **Acceptance Criteria:**
-- [ ] Upload PDF del contratto
-- [ ] Campi: tipo contratto (indeterminato/determinato/stage), data inizio, data fine, RAL
-- [ ] Un dipendente può avere più contratti (storico)
-- [ ] Solo l'ultimo contratto è "attivo"
-- [ ] Preview PDF nel browser
+- [ ] Upload PDF del contratto — deferred to Phase 2 (file upload + S3)
+- [x] Campi: tipo contratto (indeterminato/determinato/stage), data inizio, data fine, RAL
+- [x] Un dipendente può avere più contratti (storico)
+- [x] Solo l'ultimo contratto è "attivo" (end_date IS NULL)
+- [ ] Preview PDF nel browser — deferred to Phase 2
 
 **Technical Notes:**
 - Django Model: Contract (ForeignKey to Employee)
 - API endpoint: POST /api/employees/{id}/contracts/
-- Storage: AWS S3 (o locale per sviluppo)
-- Focus: File uploads, Foreign Keys, one-to-many relations, S3 integration
+- Additional fields: CCNL (metalmeccanico, commercio)
+- Active contract: derived from end_date IS NULL (no redundant is_active flag)
+- Focus: Foreign Keys, one-to-many relations, nested API routes, cross-field validation
 
 ---
 
-### US-006: Visualizzare storico contratti
-**Como** responsabile HR  
-**Voglio** vedere tutti i contratti di un dipendente  
+### US-006: Visualizzare storico contratti (API done, frontend deferred)
+**Come** responsabile HR
+**Voglio** vedere tutti i contratti di un dipendente
 **Così che** possa avere visibilità sullo storico lavorativo
 
 **Acceptance Criteria:**
-- [ ] Timeline dei contratti in ordine cronologico
-- [ ] Evidenziato il contratto attivo
-- [ ] Download PDF per ogni contratto
-- [ ] Indicatore se contratto in scadenza (<30 giorni)
+- [x] API: GET /api/employees/{id}/contracts/ returns contracts ordered by start_date DESC
+- [ ] Timeline dei contratti in ordine cronologico (frontend)
+- [ ] Evidenziato il contratto attivo (frontend)
+- [ ] Download PDF per ogni contratto — deferred to Phase 2
+- [ ] Indicatore se contratto in scadenza (<30 giorni) (frontend)
 
 **Technical Notes:**
 - API endpoint: GET /api/employees/{id}/contracts/
-- Vue component: ContractTimeline.vue
+- Vue component: ContractTimeline.vue (to be built)
 - Focus: Nested serializers, date calculations, file downloads
 
 ---

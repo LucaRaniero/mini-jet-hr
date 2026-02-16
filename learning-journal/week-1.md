@@ -241,4 +241,4 @@ EPIC 1 backend complete! 4 user stories, 13 tests, only 3 files of actual code:
 | API client | api.js | HTTP calls + error normalization |
 
 **Next steps:**
-- [ ] EPIC 2: Contract management (US-005, US-006)
+- [x] EPIC 2: Contract management (US-005, US-006) — backend started in Week 2
