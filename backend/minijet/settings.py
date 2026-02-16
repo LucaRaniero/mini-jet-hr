@@ -5,8 +5,9 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.1/topics/settings/
 """
 
-import environ
 from pathlib import Path
+
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,6 +18,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DJANGO_DEBUG=(bool, False),
 )
+
+# Read .env file if it exists (CI and local dev without Docker)
+env_file = BASE_DIR / ".env"
+if env_file.exists():
+    env.read_env(env_file)
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DJANGO_DEBUG")

@@ -185,4 +185,60 @@ EPIC 1 backend complete! 4 user stories, 13 tests, only 3 files of actual code:
 | Trigger ON UPDATE (view refresh) | Reactivity — template auto-updates on ref change |
 
 **Next steps:**
+- [x] Complete EPIC 1 frontend (US-002, US-003, US-004)
+
+---
+
+## Session 5 (2026-02-16) - EPIC 1 Frontend Completion (US-002, US-003, US-004)
+
+**Focus**: Vue Router, EmployeeForm (create/edit), ConfirmDialog (delete), full CRUD frontend
+
+**What I built:**
+- Vue Router with 3 routes: `/`, `/employees/new`, `/employees/:id/edit`
+- EmployeeForm.vue: shared form for create and edit (dual-mode via props)
+- ConfirmDialog.vue: reusable confirmation modal for delete
+- 3 view components: EmployeeListView, EmployeeCreateView, EmployeeEditView
+- Expanded api.js from 1 function (GET) to 5 (GET list, GET single, POST, PATCH, DELETE)
+- 19 frontend tests (Vitest + Vue Test Utils), 32 total with backend
+
+**What I learned:**
+- Vue Router: URL-based component dispatch (like CASE WHEN @url = '/path' THEN EXEC component)
+- Route params (`:id`): dynamic URL segments extracted as `route.params.id` (like WHERE id = @param)
+- `<RouterView />`: placeholder where the router injects the matched component
+- `<RouterLink>`: SPA navigation without page reload (unlike `<a href>`)
+- `createWebHistory()` for clean URLs vs `createWebHashHistory()` for hash-based
+- Named routes: navigate by name instead of hardcoded URLs (safer refactoring)
+- Props: parameters passed from parent to child component (like stored procedure arguments)
+- `computed()`: derived value that auto-recalculates (like a computed column in SQL)
+- `watch()` with `immediate: true`: reacts to prop changes, covers both "data ready at mount" and "data arrives later"
+- `emit()`: child-to-parent communication (like RETURN from a stored procedure)
+- `v-model`: two-way binding on form inputs (reads AND writes, like a CURSOR)
+- `@submit.prevent`: intercepts form submission, prevents page reload
+- PATCH vs PUT: PATCH sends only changed fields, avoids immutable email conflict
+- `{ data, error, status }` pattern: distinguish business errors (400) from fatal errors (throw)
+- Server-side error display per field: map DRF validation errors to input borders + messages
+- `createMemoryHistory()` in tests needs explicit `router.push('/')` before `router.isReady()` resolves
+- Docker anonymous volume gotcha: `npm install` on host ≠ inside container, must do both
+
+**Key pattern: SQL → Vue 3 mapping (new concepts):**
+| SQL / Backend | Vue 3 Equivalent |
+|---|---|
+| WHERE id = @param | `route.params.id` — parameter from URL |
+| INSERT INTO ... VALUES | `createEmployee(form)` — POST via fetch |
+| UPDATE ... SET ... WHERE | `updateEmployee(id, payload)` — PATCH via fetch |
+| DELETE ... WHERE id = @id | `deleteEmployee(id)` — DELETE via fetch (soft) |
+| SP parameter @mode = 'INSERT' vs 'UPDATE' | `props.employee` — null = create, object = edit |
+| CHECK CONSTRAINT violation message | Server 400 → `errors.field_name = ["msg"]` |
+| RETURN from SP | `emit('saved')` — signals parent |
+| CASE WHEN ... THEN ... END | Ternary: `condition ? valueA : valueB` |
+
+**Architecture pattern: separation of concerns:**
+| Layer | File | Responsibility |
+|---|---|---|
+| Routing | router/index.js | URL → component mapping |
+| Views | views/*.vue | Orchestration (fetch data, handle navigation) |
+| Components | components/*.vue | Presentation + user interaction |
+| API client | api.js | HTTP calls + error normalization |
+
+**Next steps:**
 - [ ] EPIC 2: Contract management (US-005, US-006)

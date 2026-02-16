@@ -27,17 +27,17 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-002: Creare nuovo dipendente (API ✅ | Frontend planned)
+### US-002: Creare nuovo dipendente ✅
 **Come** responsabile HR
 **Voglio** aggiungere un nuovo dipendente al sistema
 **Così che** possa gestire l'anagrafica completa
 
 **Acceptance Criteria:**
-- [ ] Form con campi: nome, cognome, email, ruolo, data assunzione, dipartimento
+- [x] Form con campi: nome, cognome, email, ruolo, data assunzione, dipartimento
 - [x] Validazione email univoca
 - [x] Validazione data assunzione (non futura)
-- [ ] Messaggio di successo dopo creazione
-- [ ] Redirect alla pagina del dipendente
+- [x] Messaggio di successo dopo creazione
+- [x] Redirect alla lista dipendenti
 
 **Technical Notes:**
 - API endpoint: POST /api/employees/
@@ -46,16 +46,16 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-003: Modificare dati dipendente (API ✅ | Frontend planned)
+### US-003: Modificare dati dipendente ✅ (audit trail deferred)
 **Come** responsabile HR
 **Voglio** aggiornare le informazioni di un dipendente
 **Così che** possa mantenere i dati sempre aggiornati
 
 **Acceptance Criteria:**
-- [ ] Form pre-compilato con dati attuali
+- [x] Form pre-compilato con dati attuali
 - [x] Tutti i campi modificabili tranne email (immutabile)
 - [x] Validazioni come in creazione
-- [ ] Log delle modifiche (chi, quando, cosa)
+- [ ] Log delle modifiche (chi, quando, cosa) — deferred to future session
 
 **Technical Notes:**
 - API endpoint: PUT/PATCH /api/employees/{id}/
@@ -63,16 +63,16 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-004: Eliminare dipendente (soft delete) (API ✅ | Frontend planned)
+### US-004: Eliminare dipendente (soft delete) ✅ (restore deferred)
 **Come** responsabile HR
 **Voglio** rimuovere un dipendente dal sistema
 **Così che** possa gestire uscite senza perdere storico
 
 **Acceptance Criteria:**
-- [ ] Conferma prima dell'eliminazione
+- [x] Conferma prima dell'eliminazione
 - [x] Soft delete (is_active=False, non cancellazione fisica)
 - [x] Dipendenti inattivi non visibili in lista default
-- [ ] Possibilità di ripristinare dipendente inattivo
+- [ ] Possibilità di ripristinare dipendente inattivo — deferred to future session
 
 **Technical Notes:**
 - API endpoint: DELETE /api/employees/{id}/

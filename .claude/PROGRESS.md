@@ -18,20 +18,25 @@
 - [x] API tests: 4 tests covering all US-001 acceptance criteria
 - [x] Vue component: EmployeeList.vue
 
-### US-002: Create Employee (done)
+### US-002: Create Employee (done — API + Frontend)
 - [x] Custom field validation: validate_hire_date (no future dates)
 - [x] Email uniqueness enforced by ModelSerializer UniqueValidator (auto from model)
 - [x] API tests: 4 tests (valid create, duplicate email, future date, missing fields)
-- [x] Manual verification via curl (POST valid, POST future date, POST duplicate email)
+- [x] EmployeeForm.vue: create mode with all fields, HTML5 validation, server error display
+- [x] Success message + redirect to list after creation
 
-### US-003: Update Employee (done)
+### US-003: Update Employee (done — API + Frontend; audit trail deferred)
 - [x] Email immutability via validate_email() with self.instance check
 - [x] PATCH support (partial update) already provided by ModelViewSet
 - [x] API tests: 3 tests (patch field, email rejected, same email allowed)
+- [x] EmployeeForm.vue: edit mode with pre-filled data, email disabled
+- [x] EmployeeEditView.vue: fetches employee by route param, loading/error states
 
-### US-004: Soft Delete (done)
+### US-004: Soft Delete (done — API + Frontend; restore deferred)
 - [x] perform_destroy() override: sets is_active=False instead of deleting
 - [x] API tests: 2 tests (soft delete preserves record, excluded from list)
+- [x] ConfirmDialog.vue: reusable confirmation modal
+- [x] Delete button in EmployeeList with confirm → re-fetch → success message
 
 ### Concepts mastered:
 - Django Model to SQL mapping (CharField=VARCHAR, EmailField, DateField, BooleanField)
@@ -68,6 +73,17 @@
 - [x] Centralized API client (api.js with VITE_API_URL env var)
 - [x] Frontend test: 1 test (App renders header)
 
+### EPIC 1 Frontend Completion (done)
+- [x] Vue Router 4: 3 routes (/, /employees/new, /employees/:id/edit)
+- [x] EmployeeForm.vue: dual-mode component (create/edit via props)
+- [x] ConfirmDialog.vue: reusable modal for delete confirmation
+- [x] 3 view components: EmployeeListView, EmployeeCreateView, EmployeeEditView
+- [x] api.js expanded: fetchEmployee, createEmployee, updateEmployee, deleteEmployee
+- [x] { data, error, status } pattern for structured error handling
+- [x] Success messages via router query params + auto-clear after 3s
+- [x] EmployeeList: action column (Modifica/Elimina), inline delete flow
+- [x] Frontend tests: 19 total (2 App + 9 EmployeeForm + 8 EmployeeList)
+
 ### Concepts mastered (Frontend):
 - Vue 3 Composition API: ref() for reactive variables, onMounted() lifecycle hook
 - Reactivity: ref() wraps values so Vue auto-updates template on change (vs plain let)
@@ -79,6 +95,19 @@
 - Docker anonymous volume: /app/node_modules preserved from host mount overwrite
 - Tailwind CSS v4: utility-first, @import "tailwindcss" + Vite plugin (no config files)
 - npm = pip, package.json = requirements.txt, node_modules = venv
+- Vue Router: URL-based component dispatch, route params (:id), named routes
+- RouterView: placeholder where router injects matched component
+- RouterLink: SPA navigation without page reload
+- Props: parent-to-child parameters (like SP arguments)
+- computed(): derived auto-recalculating value (like computed column)
+- watch() with immediate: true: reacts to prop changes, covers sync and async data arrival
+- emit(): child-to-parent events (like RETURN from SP)
+- v-model: two-way binding on inputs (reads AND writes)
+- @submit.prevent: intercept form submission, prevent page reload
+- PATCH vs PUT: partial update avoids immutable email conflict
+- { data, error, status } pattern: 400 = business error (return), 500 = fatal (throw)
+- Server-side per-field error display: map DRF errors to input borders + messages
+- createMemoryHistory() in tests: needs explicit router.push('/') for isReady() to resolve
 
 ### Next steps:
 - [ ] EPIC 2: Contract management (US-005, US-006)

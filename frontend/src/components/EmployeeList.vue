@@ -1,12 +1,30 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { fetchAPI } from '@/api'
+import { useRoute } from 'vue-router'
+import { RouterLink } from 'vue-router'
+import { fetchAPI, deleteEmployee } from '@/api'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
-// Reactive state — like DECLARE @variable in T-SQL
-// When these change, the template auto-updates (no manual DOM manipulation)
+const route = useRoute()
+
+// Reactive state
 const employees = ref([])
 const loading = ref(true)
 const error = ref(null)
+
+// Messaggio di successo (arriva da query string dopo create/edit, o da delete inline)
+const successMessage = ref(route.query.message || '')
+
+// Delete state
+const employeeToDelete = ref(null)
+const showDeleteDialog = ref(false)
+
+// Auto-clear del messaggio di successo dopo 3 secondi
+if (successMessage.value) {
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 3000)
+}
 
 async function fetchEmployees() {
   try {
@@ -14,15 +32,41 @@ async function fetchEmployees() {
     error.value = null
     const data = await fetchAPI('/employees/')
     employees.value = data.results
-  } catch (err) {
+  } catch {
     error.value = 'Errore nel caricamento dei dipendenti.'
   } finally {
     loading.value = false
   }
 }
 
-// onMounted = runs when the component appears on the page
-// Like an AFTER INSERT trigger on the DOM
+function confirmDelete(emp) {
+  employeeToDelete.value = emp
+  showDeleteDialog.value = true
+}
+
+async function handleDelete() {
+  try {
+    await deleteEmployee(employeeToDelete.value.id)
+    successMessage.value =
+      `${employeeToDelete.value.last_name}, ${employeeToDelete.value.first_name} eliminato con successo.`
+    showDeleteDialog.value = false
+    employeeToDelete.value = null
+    await fetchEmployees()
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+  } catch {
+    error.value = "Errore durante l'eliminazione."
+    showDeleteDialog.value = false
+    employeeToDelete.value = null
+  }
+}
+
+function cancelDelete() {
+  showDeleteDialog.value = false
+  employeeToDelete.value = null
+}
+
 onMounted(() => {
   fetchEmployees()
 })
@@ -31,6 +75,11 @@ onMounted(() => {
 <template>
   <div class="max-w-5xl mx-auto p-6">
     <h1 class="text-2xl font-bold mb-6 text-gray-800">Dipendenti</h1>
+
+    <!-- Messaggio di successo -->
+    <div v-if="successMessage" class="bg-green-50 text-green-700 p-3 rounded mb-4">
+      {{ successMessage }}
+    </div>
 
     <!-- Loading state -->
     <div v-if="loading" class="text-gray-500">Caricamento...</div>
@@ -41,7 +90,10 @@ onMounted(() => {
     </div>
 
     <!-- Data state -->
-    <table v-else-if="employees.length > 0" class="min-w-full bg-white shadow rounded-lg overflow-hidden">
+    <table
+      v-else-if="employees.length > 0"
+      class="min-w-full bg-white shadow rounded-lg overflow-hidden"
+    >
       <thead class="bg-gray-50 border-b">
         <tr>
           <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Nome</th>
@@ -49,6 +101,7 @@ onMounted(() => {
           <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Ruolo</th>
           <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Reparto</th>
           <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Data Assunzione</th>
+          <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Azioni</th>
         </tr>
       </thead>
       <tbody>
@@ -60,7 +113,8 @@ onMounted(() => {
           <td class="px-4 py-3 text-sm">{{ emp.last_name }}, {{ emp.first_name }}</td>
           <td class="px-4 py-3 text-sm text-gray-600">{{ emp.email }}</td>
           <td class="px-4 py-3 text-sm">
-            <span class="inline-block px-2 py-1 text-xs font-medium rounded-full"
+            <span
+              class="inline-block px-2 py-1 text-xs font-medium rounded-full"
               :class="{
                 'bg-blue-100 text-blue-700': emp.role === 'employee',
                 'bg-purple-100 text-purple-700': emp.role === 'manager',
@@ -72,11 +126,39 @@ onMounted(() => {
           </td>
           <td class="px-4 py-3 text-sm text-gray-600">{{ emp.department || '—' }}</td>
           <td class="px-4 py-3 text-sm text-gray-600">{{ emp.hire_date }}</td>
+          <td class="px-4 py-3 text-sm">
+            <RouterLink
+              :to="`/employees/${emp.id}/edit`"
+              class="text-blue-600 hover:underline mr-3"
+            >
+              Modifica
+            </RouterLink>
+            <button
+              type="button"
+              class="text-red-600 hover:underline"
+              @click="confirmDelete(emp)"
+            >
+              Elimina
+            </button>
+          </td>
         </tr>
       </tbody>
     </table>
 
     <!-- Empty state -->
     <p v-else class="text-gray-500">Nessun dipendente trovato.</p>
+
+    <!-- Dialog di conferma eliminazione -->
+    <ConfirmDialog
+      :visible="showDeleteDialog"
+      title="Elimina dipendente"
+      :message="
+        employeeToDelete
+          ? `Vuoi eliminare ${employeeToDelete.last_name}, ${employeeToDelete.first_name}? L'operazione è reversibile.`
+          : ''
+      "
+      @confirm="handleDelete"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>

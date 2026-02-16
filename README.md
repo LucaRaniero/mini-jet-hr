@@ -6,7 +6,7 @@
 [![Tech Stack](https://img.shields.io/badge/stack-Django%20%7C%20Vue%20%7C%20Docker%20%7C%20AWS-blue)]()
 [![CI](https://github.com/LucaRaniero/mini-jet-hr/workflows/CI%20Pipeline/badge.svg)](https://github.com/LucaRaniero/mini-jet-hr/actions)
 
-## 🎯 Project Goal
+## Project Goal
 
 This is a portfolio project that demonstrates:
 - **Full-stack development** capabilities (Django + Vue.js)
@@ -16,7 +16,7 @@ This is a portfolio project that demonstrates:
 
 Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/), focusing on their tech stack and problem domain.
 
-## 🤖 Built with AI-Assisted Learning
+## Built with AI-Assisted Learning
 
 This project leverages **Claude Code** as a senior engineering mentor to accelerate learning while ensuring deep understanding of concepts. 
 
@@ -26,7 +26,7 @@ The `.claude/` folder contains my learning methodology and how I've structured t
 
 Check out `learning-journal/` for my weekly progress and concepts mastered.
 
-## 🏗️ Architecture
+## Architecture
 
 **Current**: Monolithic architecture (matching Jet HR's current approach for speed)  
 **Future-ready**: Designed to be split into microservices
@@ -53,17 +53,19 @@ Check out `learning-journal/` for my weekly progress and concepts mastered.
                      └─────────────┘
 ```
 
-## 🚀 Features
+## Features
 
-### ✅ Completed
-- [x] Employee CRUD operations (API + frontend list view)
+### Completed
+- [x] Employee CRUD operations (API + full frontend: list, create, edit, delete)
+- [x] Vue Router with 3 routes (list, create form, edit form)
 - [x] Docker containerization (PostgreSQL + Django + Vue)
+- [x] 32 automated tests (13 backend + 19 frontend)
 
-### 🏗️ In Progress
+### In Progress
 - [ ] Contract management
 - [ ] Authentication & role-based permissions
 
-### 📋 Planned
+### Planned
 - [ ] Onboarding automation
 - [ ] Dashboard & analytics
 - [ ] PDF report generation
@@ -73,7 +75,7 @@ Check out `learning-journal/` for my weekly progress and concepts mastered.
 
 Full user stories available in [`docs/USER_STORIES.md`](docs/USER_STORIES.md)
 
-## 📁 Project Structure
+## Project Structure
 ```
 mini-jet-hr/
 ├── .claude/                # AI learning configuration
@@ -91,7 +93,7 @@ mini-jet-hr/
 └── docker/                # Docker configurations
 ```
 
-## 🛠️ Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
 - Python 3.11+
@@ -130,7 +132,7 @@ npm install
 npm run dev
 ```
 
-## 📚 Learning Journey
+## Learning Journey
 
 This project is part of my transition from **Senior Data Engineer** to **Software Engineer**.
 
@@ -140,7 +142,7 @@ This project is part of my transition from **Senior Data Engineer** to **Softwar
 
 See [`learning-journal/`](learning-journal/) for detailed weekly progress.
 
-## 🧪 Testing
+## Testing
 ```bash
 # Backend tests
 cd backend
@@ -154,7 +156,7 @@ npm run test
 pytest --cov=. --cov-report=html
 ```
 
-## 📦 Deployment
+## Deployment
 
 Deployment instructions for AWS will be added once the containerization is complete.
 
@@ -164,7 +166,7 @@ Target architecture:
 - **Storage**: AWS S3
 - **CDN**: CloudFront (optional)
 
-## 🤝 Contributing
+## Contributing
 
 This is a personal learning project, but I'm open to feedback and suggestions!
 
@@ -174,16 +176,16 @@ Feel free to open issues if you spot:
 - Optimization opportunities
 - Learning resources recommendations
 
-## 📝 License
+## License
 
 MIT License - This is a portfolio/learning project, feel free to use it for your own learning.
 
-## 📬 Contact
+## Contact
 
 - **LinkedIn**: https://www.linkedin.com/in/luca-raniero/
 
 ---
 
-**Current Status**: 🏗️ Week 1 of 8 | Last updated: 2026/02/12
+**Current Status**: Week 1 of 8 | Last updated: 2026/02/16
 
 *"The best way to learn is to build."*
