@@ -43,6 +43,7 @@ function createTestRouter(query = {}) {
     routes: [
       { path: '/', component: { template: '<div />' } },
       { path: '/employees/:id/edit', component: { template: '<div />' } },
+      { path: '/employees/:employeeId/contracts', component: { template: '<div />' } },
     ],
   })
   router.push({ path: '/', query })

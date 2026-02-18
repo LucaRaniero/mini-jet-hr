@@ -128,6 +128,12 @@ onMounted(() => {
           <td class="px-4 py-3 text-sm text-gray-600">{{ emp.hire_date }}</td>
           <td class="px-4 py-3 text-sm">
             <RouterLink
+              :to="`/employees/${emp.id}/contracts`"
+              class="text-blue-600 hover:underline mr-3"
+            >
+              Contratti
+            </RouterLink>
+            <RouterLink
               :to="`/employees/${emp.id}/edit`"
               class="text-blue-600 hover:underline mr-3"
             >

@@ -54,5 +54,55 @@
 | DELETE | /api/employees/{id}/contracts/{pk}/ | destroy | DELETE WHERE id = @pk |
 
 **Next steps:**
-- [ ] EPIC 2 Frontend: Contract list + create/edit forms
+- [x] EPIC 2 Frontend: Contract list + create/edit forms — done in Session 7
 - [ ] EPIC 2 Phase 2: File upload (PDF) + S3 storage
+
+---
+
+## Session 7 (2026-02-18) - Contract CRUD Frontend
+
+**Focus**: Vue components for nested resources, route params, form validation alignment
+
+**What I built:**
+- api.js: 5 contract API functions (fetchContract, fetchContracts, createContract, updateContract, deleteContract) with guard clauses
+- ContractList.vue: table with Promise.all parallel fetch, active/closed badges, RAL currency formatting, delete flow with ConfirmDialog
+- ContractForm.vue: dual-mode create/edit, dropdown choices matching backend TextChoices, optional end_date with payload cleanup
+- 3 View wrappers (ContractListView, ContractCreateView, ContractEditView)
+- Vue Router: 3 nested routes with :employeeId and :contractId params
+- EmployeeList.vue: "Contratti" link per employee row
+- 22 new frontend tests (12 ContractList + 10 ContractForm)
+
+**What I learned:**
+- Promise.all: fetch multiple APIs in parallel (like running two SQL queries simultaneously)
+- Intl.NumberFormat('it-IT'): browser-native currency formatting (no external library needed)
+- Derived state: active/closed badge from `end_date === null` (no redundant DB column)
+- Route params are STRINGS: must convert with `Number()` before passing as typed Number prop
+- `<input type="number">` + v-model: Vue auto-converts to Number (not String) — caught by failing tests
+- Frontend/backend choices MUST match: `<select>` options must be identical to Django TextChoices values — "stage" ≠ "stagista" causes 400 error
+- Optional field UX: remove both HTML `required` attribute AND asterisk from label
+- Payload cleanup before API call: empty string '' should be removed (delete), not sent as '' (which != null)
+- Hard delete messaging: "irreversibile" (vs "reversibile" for soft delete)
+- Guard clauses (fail-fast): `if (!employeeId) throw new Error(...)` prevents silent bugs with `undefined` in URL
+
+**Key pattern: EmployeeForm → ContractForm differences:**
+| Aspect | EmployeeForm | ContractForm |
+|---|---|---|
+| Props | employee (Object/null) | employeeId (Number) + contract (Object/null) |
+| Immutable field | email (disabled in edit) | None |
+| API call | createEmployee(payload) | createContract(employeeId, payload) |
+| Optional field | department (string, blank ok) | end_date (date, needs '' → delete cleanup) |
+| Cancel link | / (employee list) | /employees/{id}/contracts (contract list) |
+| Choices | 1 select (role) | 2 selects (contract_type, ccnl) |
+
+**Mistakes caught in code review:**
+1. `result` not declared with `let` (strict mode ReferenceError)
+2. Select options didn't match backend TextChoices ("stage" vs "stagista")
+3. end_date marked as required (should be optional for active contracts)
+4. end_date '' cleanup only in edit branch (needed in both)
+5. "Annulla" link pointed to / instead of contracts list
+6. `_nonFieldErrors` key didn't match template's `non_field_errors`
+7. Unused imports and refs (onMounted, useRoute, fetchEmployee, employee, loading, error)
+
+**Next steps:**
+- [ ] EPIC 2 Phase 2: File upload (PDF) + S3 storage
+- [ ] EPIC 3: Onboarding automation

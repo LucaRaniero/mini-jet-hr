@@ -47,13 +47,12 @@ Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/)
 
 ### Completed
 - [x] Employee CRUD operations (API + full frontend: list, create, edit, delete)
-- [x] Vue Router with 3 routes (list, create form, edit form)
+- [x] Contract management (API + full frontend: nested CRUD under employees)
+- [x] Vue Router with 6 routes (3 employee + 3 contract)
 - [x] Docker containerization (PostgreSQL + Django + Vue)
-- [x] Contract management API (nested CRUD under employees, 9 tests)
-- [x] 41 automated tests (22 backend + 19 frontend)
+- [x] 63 automated tests (22 backend + 41 frontend)
 
 ### In Progress
-- [ ] Contract management frontend
 - [ ] Authentication & role-based permissions
 
 ### Planned
@@ -187,6 +186,6 @@ MIT License - This is a portfolio/learning project, feel free to use it for your
 
 ---
 
-**Current Status**: Week 2 of 8 | Last updated: 2026/02/16
+**Current Status**: Week 2 of 8 | Last updated: 2026/02/18
 
 *"The best way to learn is to build."*

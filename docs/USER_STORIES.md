@@ -83,7 +83,7 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 2: Gestione Contratti
 *Obiettivo learning: Foreign keys, relazioni, file upload*
 
-### US-005: Associare contratto a dipendente ✅ (API done, PDF upload deferred)
+### US-005: Associare contratto a dipendente ✅ (Phase 1 done, PDF upload deferred)
 **Come** responsabile HR
 **Voglio** caricare e associare un contratto a un dipendente
 **Così che** possa digitalizzare i documenti contrattuali
@@ -104,22 +104,22 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-006: Visualizzare storico contratti (API done, frontend deferred)
+### US-006: Visualizzare storico contratti ✅ (Phase 1 done, PDF download deferred)
 **Come** responsabile HR
 **Voglio** vedere tutti i contratti di un dipendente
 **Così che** possa avere visibilità sullo storico lavorativo
 
 **Acceptance Criteria:**
 - [x] API: GET /api/employees/{id}/contracts/ returns contracts ordered by start_date DESC
-- [ ] Timeline dei contratti in ordine cronologico (frontend)
-- [ ] Evidenziato il contratto attivo (frontend)
+- [x] Lista contratti con colonne: tipo, CCNL, RAL, date, stato
+- [x] Evidenziato il contratto attivo (badge verde "Attivo" / grigio "Chiuso")
 - [ ] Download PDF per ogni contratto — deferred to Phase 2
-- [ ] Indicatore se contratto in scadenza (<30 giorni) (frontend)
+- [ ] Indicatore se contratto in scadenza (<30 giorni) — deferred
 
 **Technical Notes:**
 - API endpoint: GET /api/employees/{id}/contracts/
-- Vue component: ContractTimeline.vue (to be built)
-- Focus: Nested serializers, date calculations, file downloads
+- Vue component: ContractList.vue (table with badges, not timeline)
+- Focus: Nested routes, parallel fetching, derived state, currency formatting
 
 ---
 

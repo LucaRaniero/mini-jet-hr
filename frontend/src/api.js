@@ -66,3 +66,44 @@ export function deleteEmployee(id) {
     method: 'DELETE',
   })
 }
+
+// --- GET singolo contratto ---
+export function fetchContract(employeeId, contractId) {
+  if (!employeeId) throw new Error('Employee ID is required')
+  if (!contractId) throw new Error('Contract ID is required')
+  return apiRequest(`/employees/${employeeId}/contracts/${contractId}/`)
+}
+
+// --- GET contratti di un dipendente ---
+export function fetchContracts(employeeId) {
+  if (!employeeId) throw new Error('Employee ID is required')
+  return apiRequest(`/employees/${employeeId}/contracts/`)
+}
+
+// --- POST nuovo contratto ---
+export function createContract(employeeId, payload) {
+  if (!employeeId) throw new Error('Employee ID is required')
+  return apiRequest(`/employees/${employeeId}/contracts/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+// --- PATCH aggiornamento parziale contratto ---
+export function updateContract(employeeId, contractId, payload) {
+  if (!employeeId) throw new Error('Employee ID is required')
+  if (!contractId) throw new Error('Contract ID is required')
+  return apiRequest(`/employees/${employeeId}/contracts/${contractId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+// --- DELETE (hard delete) contratto ---
+export function deleteContract(employeeId, contractId) {
+  if (!employeeId) throw new Error('Employee ID is required')
+  if (!contractId) throw new Error('Contract ID is required')
+  return apiRequest(`/employees/${employeeId}/contracts/${contractId}/`, {
+    method: 'DELETE',
+  })
+}
