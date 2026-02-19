@@ -77,13 +77,16 @@ async function handleSubmit() {
   try {
     let result
     const payload = { ...form.value }
-    if (payload.end_date === '') {
-      delete payload.end_date
-    }
 
     if (isEditMode.value) {
+      if (payload.end_date === '') {
+        payload.end_date = null
+      }
       result = await updateContract(props.employeeId, props.contract.id, payload, selectedFile.value)
     } else {
+      if (payload.end_date === '') {
+        delete payload.end_date
+      }
       result = await createContract(props.employeeId, payload, selectedFile.value)
     }
 

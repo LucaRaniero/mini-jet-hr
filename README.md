@@ -49,9 +49,10 @@ Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/)
 - [x] Employee CRUD operations (API + full frontend: list, create, edit, delete)
 - [x] Contract management (API + full frontend: nested CRUD under employees)
 - [x] PDF upload for contracts (FileField, multipart, preview in browser)
+- [x] Contract status badges (Pianificato/In Scadenza/Attivo/Scaduto) with expiration indicator
 - [x] Vue Router with 6 routes (3 employee + 3 contract)
 - [x] Docker containerization (PostgreSQL + Django + Vue)
-- [x] 78 automated tests (29 backend + 49 frontend)
+- [x] 85 automated tests (33 backend + 52 frontend)
 
 ### In Progress
 - [ ] Authentication & role-based permissions

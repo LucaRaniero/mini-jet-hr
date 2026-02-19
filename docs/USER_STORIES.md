@@ -104,7 +104,7 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-006: Visualizzare storico contratti ✅ (expiration indicator deferred)
+### US-006: Visualizzare storico contratti ✅
 **Come** responsabile HR
 **Voglio** vedere tutti i contratti di un dipendente
 **Così che** possa avere visibilità sullo storico lavorativo
@@ -112,9 +112,9 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 **Acceptance Criteria:**
 - [x] API: GET /api/employees/{id}/contracts/ returns contracts ordered by start_date DESC
 - [x] Lista contratti con colonne: tipo, CCNL, RAL, date, stato, PDF
-- [x] Evidenziato il contratto attivo (badge verde "Attivo" / grigio "Chiuso")
+- [x] Evidenziato il contratto attivo (4 stati: Pianificato/In Scadenza/Attivo/Scaduto)
 - [x] Visualizza/Download PDF per ogni contratto (link in colonna PDF)
-- [ ] Indicatore se contratto in scadenza (<30 giorni) — deferred
+- [x] Indicatore se contratto in scadenza (<30 giorni) — backend is_expiring + yellow badge
 
 **Technical Notes:**
 - API endpoint: GET /api/employees/{id}/contracts/

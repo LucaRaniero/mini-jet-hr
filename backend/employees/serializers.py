@@ -37,6 +37,7 @@ class ContractSerializer(serializers.ModelSerializer):
     # SerializerMethodField: campo calcolato (read-only), come una computed column.
     # Serve al frontend per avere l'URL completo del file senza doverlo costruire.
     document_url = serializers.SerializerMethodField()
+    is_expiring = serializers.SerializerMethodField()
 
     class Meta:
         model = Contract
@@ -50,6 +51,7 @@ class ContractSerializer(serializers.ModelSerializer):
             "end_date",
             "document",
             "document_url",
+            "is_expiring",
             "created_at",
             "updated_at",
         ]
@@ -69,6 +71,14 @@ class ContractSerializer(serializers.ModelSerializer):
             # '/media/contracts/2026/02/file.pdf' → 'http://localhost:8000/media/contracts/2026/02/file.pdf'
             return request.build_absolute_uri(obj.document.url)
         return obj.document.url
+
+    def get_is_expiring(self, obj):
+        """Check if the contract is expiring in the next 30 days."""
+        if not obj.end_date:
+            return False
+        if obj.end_date < date.today():
+            return False
+        return (obj.end_date - date.today()).days <= 30
 
     def validate_document(self, value):
         """Validate uploaded file: only PDF, max 5 MB."""

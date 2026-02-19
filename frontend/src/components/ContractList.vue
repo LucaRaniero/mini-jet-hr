@@ -15,6 +15,9 @@ const props = defineProps({
 
 const route = useRoute()
 
+// Data odierna in formato YYYY-MM-DD per confronti stringa
+const today = new Date().toISOString().split('T')[0]
+
 // --- State ---
 const contracts = ref([])
 const employee = ref(null)
@@ -165,16 +168,30 @@ onMounted(() => {
           <td class="px-4 py-3 text-sm text-gray-600">{{ contract.start_date }}</td>
           <td class="px-4 py-3 text-sm text-gray-600">{{ contract.end_date || '—' }}</td>
           <td class="px-4 py-3 text-sm">
-            <!-- Stato derivato: end_date null = attivo, altrimenti chiuso -->
+            <!-- Pianificato: inizia nel futuro, is_expiring true = In Scadenza, end_date null = attivo, altrimenti scaduto -->
             <span
-              class="inline-block px-2 py-1 text-xs font-medium rounded-full"
-              :class="
-                contract.end_date
-                  ? 'bg-gray-100 text-gray-600'
-                  : 'bg-green-100 text-green-700'
-              "
+              v-if="contract.start_date > today"
+              class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200"
             >
-              {{ contract.end_date ? 'Chiuso' : 'Attivo' }}
+              Pianificato
+            </span>
+            <span
+              v-else-if="contract.is_expiring"
+              class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700"
+            >
+              In Scadenza
+            </span>
+            <span
+              v-else-if="contract.start_date <= today && (!contract.end_date || contract.end_date > today)"
+              class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700"
+            >
+              Attivo
+            </span>
+            <span
+              v-else
+              class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700"
+            >
+              Scaduto
             </span>
           </td>
           <!-- Documento PDF: link di preview (apre in nuova tab) -->

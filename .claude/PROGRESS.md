@@ -194,6 +194,22 @@
 - override_settings(MEDIA_ROOT=tempdir): isolate test file storage from real MEDIA_ROOT
 - if settings.DEBUG: urlpatterns +=: serve media files only in development
 
+### EPIC 2 Phase 3: Expiration Indicator + Bug Fixes (done)
+- [x] Backend: is_expiring SerializerMethodField (computed, no migration)
+- [x] Frontend: 4-state badge (Pianificato/In Scadenza/Attivo/Scaduto) replacing 2-state (Attivo/Chiuso)
+- [x] Bug fix: end_date clearing in edit mode (PATCH sends null, not omit)
+- [x] Bug fix: isort import order in urls.py (CI green)
+- [x] Backend tests: 4 new (expiration edge cases with timedelta)
+- [x] Frontend tests: 3 new (Pianificato, In Scadenza, end_date null PATCH)
+- [x] Total tests: 85 (33 backend + 52 frontend)
+
+### Concepts mastered (EPIC 2 Phase 3):
+- SerializerMethodField pattern reuse: is_expiring mirrors document_url (computed, read-only)
+- Boundary condition testing: today-30, today+15, today+90 for expiration window
+- PATCH semantics: omitting field = "don't change" vs sending null = "set to null"
+- v-if/v-else-if/v-else chain: order matters (like SQL CASE WHEN — first match wins)
+- String date comparison: YYYY-MM-DD lexicographic order matches chronological order
+- isort: Python import sorting tool — alphabetical within groups (stdlib, third-party, local)
+
 ### Next steps:
-- [ ] EPIC 2 deferred: contract expiration indicator (<30 days)
 - [ ] EPIC 3: Onboarding automation

@@ -164,6 +164,24 @@ describe('ContractForm', () => {
       }), null)
       expect(wrapper.emitted('saved')).toBeTruthy()
     })
+
+    it('sends end_date: null when field is cleared — PATCH explicit null', async () => {
+      updateContract.mockResolvedValue({
+        data: { ...contract, end_date: null },
+        error: null,
+        status: 200,
+      })
+
+      const wrapper = mountForm({ contract })
+      // Simula l'utente che cancella la data di fine
+      await wrapper.find('#end_date').setValue('')
+
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      const payload = updateContract.mock.calls[0][2]
+      expect(payload.end_date).toBeNull()
+    })
   })
 
   // --- File upload ---

@@ -393,3 +393,55 @@ class ContractDocumentAPITest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         contract.refresh_from_db()
         self.assertTrue(contract.document.name)
+
+
+class ContractExpirationAPITest(TestCase):
+    """Tests for is_expiring computed field on contract API responses."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        self.url = f"/api/employees/{self.employee.id}/contracts/"
+
+    def _create_contract(self, end_date=None):
+        """Helper: create a contract via API and return the GET response data."""
+        payload = {
+            "contract_type": "determinato",
+            "ccnl": "metalmeccanico",
+            "ral": "30000.00",
+            "start_date": "2024-01-01",
+        }
+        if end_date:
+            payload["end_date"] = str(end_date)
+        response = self.client.post(self.url, payload, format="json")
+        contract_id = response.data["id"]
+        return self.client.get(f"{self.url}{contract_id}/").data
+
+    def test_no_end_date_not_expiring(self):
+        """Contract without end_date (indeterminato) should NOT be expiring."""
+        data = self._create_contract(end_date=None)
+        self.assertFalse(data["is_expiring"])
+
+    def test_past_end_date_not_expiring(self):
+        """Contract with end_date in the past should NOT be expiring."""
+        past = date.today() - timedelta(days=30)
+        data = self._create_contract(end_date=past)
+        self.assertFalse(data["is_expiring"])
+
+    def test_end_date_within_30_days_is_expiring(self):
+        """Contract with end_date within 30 days should be expiring."""
+        soon = date.today() + timedelta(days=15)
+        data = self._create_contract(end_date=soon)
+        self.assertTrue(data["is_expiring"])
+
+    def test_end_date_far_future_not_expiring(self):
+        """Contract with end_date > 30 days away should NOT be expiring."""
+        far = date.today() + timedelta(days=90)
+        data = self._create_contract(end_date=far)
+        self.assertFalse(data["is_expiring"])

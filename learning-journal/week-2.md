@@ -154,5 +154,52 @@ Browser ← GET document_url ← SerializerMethodField ← request.build_absolut
 ```
 
 **Next steps:**
-- [ ] EPIC 2 deferred: contract expiration indicator (<30 days)
+- [x] EPIC 2 Phase 3: Expiration indicator + badge refactor — done in Session 9
+- [ ] EPIC 3: Onboarding automation
+
+---
+
+## Session 9 (2026-02-19) - Expiration Indicator + Bug Fixes (EPIC 2 Phase 3)
+
+**Focus**: Computed API fields, 4-state badge logic, PATCH semantics for nullable fields
+
+**What I built:**
+- Backend: is_expiring SerializerMethodField — computed field (no migration), 3-condition guard pattern
+- Frontend: 4-state badge system (Pianificato/In Scadenza/Attivo/Scaduto) replacing simple 2-state (Attivo/Chiuso)
+- Bug fix: end_date clearing in ContractForm edit mode (PATCH needs explicit null, not field omission)
+- Bug fix: isort import order in urls.py (unblocked CI pipeline)
+- 7 new tests (4 backend + 3 frontend), total 85
+
+**What I learned:**
+- SerializerMethodField reuse: is_expiring follows same pattern as document_url — declare, add to fields, write get_ method
+- Boundary conditions in computed fields: "expiring" needs BOTH lower bound (not expired) AND upper bound (within 30 days)
+- Bug I wrote: `(end_date - today).days <= 30` is True for negative days too! Expired contracts matched as "expiring"
+- PATCH semantics (key lesson):
+  - Omitting a field in PATCH = "don't touch this column" (like not including a column in UPDATE SET)
+  - Sending field: null = "SET column = NULL" — you must be EXPLICIT to nullify
+  - In SQL terms: `UPDATE t SET ral=30000` (omit end_date) vs `UPDATE t SET ral=30000, end_date=NULL` (explicit null)
+- v-if/v-else-if chain order: works like SQL CASE WHEN — first matching condition wins, order is critical
+- String date comparison: "2026-02-19" > "2025-12-31" works because YYYY-MM-DD is lexicographically ordered
+- isort groups: stdlib, third-party, local — alphabetical within each group
+
+**Key pattern: 4-state badge logic (CASE WHEN equivalent):**
+```
+v-if="start_date > today"           → Pianificato (blue)   -- WHEN start_date > GETDATE()
+v-else-if="is_expiring"             → In Scadenza (yellow) -- WHEN DATEDIFF(DAY, GETDATE(), end_date) <= 30
+v-else-if="!end_date || end > today" → Attivo (green)      -- WHEN end_date IS NULL OR end_date > GETDATE()
+v-else                               → Scaduto (gray)      -- ELSE (past end_date)
+```
+
+**Key pattern: PATCH null vs omit:**
+| Action | Frontend payload | HTTP body | Backend behavior |
+|---|---|---|---|
+| Don't change end_date | omit field | `{"ral": 30000}` | end_date unchanged |
+| Clear end_date | send null | `{"ral": 30000, "end_date": null}` | end_date = NULL |
+| Set end_date | send value | `{"ral": 30000, "end_date": "2026-12-31"}` | end_date = value |
+
+**Bug caught by manual testing:**
+- Badge showed "Chiuso" instead of "In Scadenza": Docker container hadn't reloaded (hard refresh fixed)
+- Clearing end_date in edit mode did nothing: payload used `delete` instead of `= null` for PATCH
+
+**Next steps:**
 - [ ] EPIC 3: Onboarding automation

@@ -30,6 +30,7 @@ const mockContracts = {
       ral: '35000.00',
       start_date: '2024-01-15',
       end_date: null,
+      is_expiring: false,
       document_url: 'http://localhost:8000/media/contracts/2026/02/contratto.pdf',
     },
     {
@@ -40,6 +41,7 @@ const mockContracts = {
       ral: '28000.00',
       start_date: '2023-01-01',
       end_date: '2023-12-31',
+      is_expiring: false,
       document_url: null,
     },
   ],
@@ -101,12 +103,79 @@ describe('ContractList', () => {
     expect(badges[0].classes()).toContain('bg-green-100')
   })
 
-  it('shows closed badge for contract with end_date', async () => {
+  it('shows expired badge for contract with past end_date', async () => {
     const wrapper = await mountList()
     const badges = wrapper.findAll('.rounded-full')
-    // Secondo contratto: end_date set → Chiuso
-    expect(badges[1].text()).toBe('Chiuso')
+    // Secondo contratto: end_date passata, is_expiring false → Scaduto
+    expect(badges[1].text()).toBe('Scaduto')
     expect(badges[1].classes()).toContain('bg-gray-100')
+  })
+
+  it('shows planned badge for contract starting in the future', async () => {
+    const plannedContracts = {
+      count: 1,
+      results: [
+        {
+          id: 13,
+          employee: 1,
+          contract_type: 'determinato',
+          ccnl: 'commercio',
+          ral: '30000.00',
+          start_date: '2099-01-01',
+          end_date: '2099-12-31',
+          is_expiring: false,
+          document_url: null,
+        },
+      ],
+    }
+    fetchEmployee.mockResolvedValue({ data: mockEmployee, error: null, status: 200 })
+    fetchContracts.mockResolvedValue({ data: plannedContracts, error: null, status: 200 })
+
+    const router = createTestRouter()
+    await router.isReady()
+    const wrapper = mount(ContractList, {
+      props: { employeeId: 1 },
+      global: { plugins: [router] },
+    })
+    await flushPromises()
+
+    const badge = wrapper.find('.rounded-full')
+    expect(badge.text()).toBe('Pianificato')
+    expect(badge.classes()).toContain('bg-blue-50')
+  })
+
+  it('shows expiring badge when is_expiring is true', async () => {
+    // Mock con un contratto in scadenza (is_expiring: true)
+    const expiringContracts = {
+      count: 1,
+      results: [
+        {
+          id: 12,
+          employee: 1,
+          contract_type: 'determinato',
+          ccnl: 'metalmeccanico',
+          ral: '32000.00',
+          start_date: '2025-06-01',
+          end_date: '2026-03-10',
+          is_expiring: true,
+          document_url: null,
+        },
+      ],
+    }
+    fetchEmployee.mockResolvedValue({ data: mockEmployee, error: null, status: 200 })
+    fetchContracts.mockResolvedValue({ data: expiringContracts, error: null, status: 200 })
+
+    const router = createTestRouter()
+    await router.isReady()
+    const wrapper = mount(ContractList, {
+      props: { employeeId: 1 },
+      global: { plugins: [router] },
+    })
+    await flushPromises()
+
+    const badge = wrapper.find('.rounded-full')
+    expect(badge.text()).toBe('In Scadenza')
+    expect(badge.classes()).toContain('bg-yellow-100')
   })
 
   it('formats RAL as currency', async () => {
