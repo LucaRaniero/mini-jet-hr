@@ -19,10 +19,15 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("employees.urls")),
+    # OpenAPI schema (YAML/JSON) — il "contratto" leggibile da tool esterni
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    # Swagger UI — interfaccia interattiva per esplorare e testare l'API
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
 ]
 
 # Serve media files during development

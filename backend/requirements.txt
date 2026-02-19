@@ -11,6 +11,9 @@ django-environ>=0.11,<1.0
 # CORS: allow frontend (different port) to call the API
 django-cors-headers>=4.3,<5.0
 
+# API documentation: auto-generates OpenAPI 3.0 schema + Swagger UI
+drf-spectacular>=0.27,<1.0
+
 # Code quality (matching CI pipeline)
 black>=24.0
 isort>=5.13

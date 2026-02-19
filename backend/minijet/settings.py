@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "corsheaders",
+    "drf_spectacular",
     # Local apps
     "employees",
 ]
@@ -141,6 +142,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# drf-spectacular: API documentation settings
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Mini Jet HR API",
+    "DESCRIPTION": "API per la gestione dipendenti e contratti.",
+    "VERSION": "1.0.0",
 }
 
 # CORS: allow the Vue frontend dev server to call the API
