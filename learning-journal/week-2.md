@@ -104,5 +104,55 @@
 7. Unused imports and refs (onMounted, useRoute, fetchEmployee, employee, loading, error)
 
 **Next steps:**
-- [ ] EPIC 2 Phase 2: File upload (PDF) + S3 storage
+- [x] EPIC 2 Phase 2: File upload (PDF) — done in Session 8
+- [ ] EPIC 3: Onboarding automation
+
+---
+
+## Session 8 (2026-02-19) - PDF Upload for Contracts (EPIC 2 Phase 2)
+
+**Focus**: File upload, multipart/form-data, Django FileField, FormData API
+
+**What I built:**
+- Django settings: MEDIA_ROOT, MEDIA_URL, media URL serving (if DEBUG)
+- Contract model: FileField(upload_to='contracts/%Y/%m/') + migration 0003
+- ContractSerializer: SerializerMethodField for document_url, validate_document() (ext + content-type + size)
+- api.js: FormData support — buildContractBody helper, auto-detect FormData in apiRequest to skip Content-Type
+- ContractForm.vue: file input with client-side PDF/size validation, existing document link in edit mode
+- ContractList.vue: "PDF" column with Visualizza link or dash
+- 15 new tests (7 backend + 8 frontend), total 78
+
+**What I learned:**
+- FileField stores only the PATH in DB (VARCHAR), the actual file lives on disk — not a BLOB
+- MEDIA_ROOT = physical directory on disk, MEDIA_URL = HTTP URL prefix (like alias in web server)
+- upload_to='contracts/%Y/%m/' creates date-based subdirectories automatically (like partitioning)
+- multipart/form-data: binary data can't go in JSON, needs a different encoding with boundaries
+- FormData: browser API that builds multipart body — NEVER set Content-Type manually (browser adds boundary)
+- SerializerMethodField: read-only computed column — uses request.build_absolute_uri() for absolute URLs
+- File validation cascade: extension → content-type → size (defense in depth, like layered security)
+- Client-side validation mirrors server validation: fail-fast UX, prevents unnecessary roundtrips
+- SimpleUploadedFile: Django test utility for creating fake uploaded files with specific content-type
+- override_settings(MEDIA_ROOT=tempdir): test isolation — don't pollute real media directory
+- `if settings.DEBUG: urlpatterns +=`: media serving only in dev (Nginx/S3 in production)
+
+**Key pattern: JSON vs FormData in api.js:**
+```
+Senza file:  JSON.stringify(payload) → Content-Type: application/json
+Con file:    FormData(payload + file) → Content-Type: multipart/form-data (auto)
+```
+
+**Key pattern: document vs document_url:**
+| Campo | Direzione | Tipo | Scopo |
+|---|---|---|---|
+| document | Frontend → Backend | FileField (write) | Riceve il file nell'upload |
+| document_url | Backend → Frontend | SerializerMethodField (read) | URL assoluto per preview/download |
+
+**Architecture: file storage flow:**
+```
+Browser → multipart POST → DRF parser → FileField.save() → MEDIA_ROOT/contracts/2026/02/file.pdf
+Browser ← GET document_url ← SerializerMethodField ← request.build_absolute_uri(obj.document.url)
+```
+
+**Next steps:**
+- [ ] EPIC 2 deferred: contract expiration indicator (<30 days)
 - [ ] EPIC 3: Onboarding automation

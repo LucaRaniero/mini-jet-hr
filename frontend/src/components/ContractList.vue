@@ -148,6 +148,7 @@ onMounted(() => {
           <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Data Inizio</th>
           <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Data Fine</th>
           <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Stato</th>
+          <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">PDF</th>
           <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Azioni</th>
         </tr>
       </thead>
@@ -175,6 +176,18 @@ onMounted(() => {
             >
               {{ contract.end_date ? 'Chiuso' : 'Attivo' }}
             </span>
+          </td>
+          <!-- Documento PDF: link di preview (apre in nuova tab) -->
+          <td class="px-4 py-3 text-sm">
+            <a
+              v-if="contract.document_url"
+              :href="contract.document_url"
+              target="_blank"
+              class="text-blue-600 hover:underline"
+            >
+              Visualizza
+            </a>
+            <span v-else class="text-gray-400">—</span>
           </td>
           <td class="px-4 py-3 text-sm">
             <RouterLink

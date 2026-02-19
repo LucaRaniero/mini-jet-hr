@@ -16,6 +16,8 @@ const props = defineProps({
 
 const emit = defineEmits(['saved'])
 
+const selectedFile = ref(null)
+
 const isEditMode = computed(() => props.contract !== null)
 
 const form = ref({
@@ -45,6 +47,29 @@ watch(
   { immediate: true },
 )
 
+function onFileChange(event) {
+  const file = event.target.files[0]
+  if (!file) {
+    selectedFile.value = null
+    return
+  }
+
+  // Validazione manuale (il backend fa la stessa cosa, ma è meglio bloccare subito)
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    errors.value.document = ['Solo file PDF sono accettati.']
+    selectedFile.value = null
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    errors.value.document = ['Il file non può superare 5 MB.']
+    selectedFile.value = null
+    return
+  }
+
+  selectedFile.value = file
+  delete errors.value.document
+}
+
 async function handleSubmit() {
   submitting.value = true
   errors.value = {}
@@ -57,9 +82,9 @@ async function handleSubmit() {
     }
 
     if (isEditMode.value) {
-      result = await updateContract(props.employeeId, props.contract.id, payload)
+      result = await updateContract(props.employeeId, props.contract.id, payload, selectedFile.value)
     } else {
-      result = await createContract(props.employeeId, payload)
+      result = await createContract(props.employeeId, payload, selectedFile.value)
     }
 
     if (result.error) {
@@ -164,6 +189,34 @@ async function handleSubmit() {
         :class="{ 'border-red-500': errors.end_date }"
       />
       <p v-if="errors.end_date" class="text-red-600 text-xs mt-1">{{ errors.end_date[0] }}</p>
+    </div>
+
+    <!-- Documento (PDF) -->
+    <div class="mb-6">
+      <label for="document" class="block text-sm font-medium mb-1"
+        >Documento (PDF)</label
+      >
+      <input
+        id="document"
+        type="file"
+        accept=".pdf"
+        @change="onFileChange"
+        class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        :class="{ 'border-red-500': errors.document }"
+      />
+      <p v-if="errors.document" class="text-red-600 text-xs mt-1">{{ errors.document[0] }}</p>
+      <p v-if="selectedFile" class="text-sm text-gray-600 mt-1">
+        File selezionato: {{ selectedFile.name }} ({{ (selectedFile.size / 1024).toFixed(0) }} KB)
+      </p>
+      <p v-else-if="isEditMode && props.contract?.document_url" class="text-sm text-gray-600 mt-1">
+        <a
+          :href="props.contract.document_url"
+          target="_blank"
+          class="text-blue-600 hover:underline"
+        >
+          Visualizza PDF
+        </a>
+      </p>
     </div>
     
     <!-- Bottoni -->

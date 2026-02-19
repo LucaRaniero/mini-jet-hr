@@ -34,6 +34,10 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
 
 class ContractSerializer(serializers.ModelSerializer):
+    # SerializerMethodField: campo calcolato (read-only), come una computed column.
+    # Serve al frontend per avere l'URL completo del file senza doverlo costruire.
+    document_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Contract
         fields = [
@@ -44,10 +48,47 @@ class ContractSerializer(serializers.ModelSerializer):
             "ral",
             "start_date",
             "end_date",
+            "document",
+            "document_url",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "employee", "created_at", "updated_at"]
+
+    def get_document_url(self, obj):
+        """Build absolute URL for the document file.
+
+        Returns None if no document is uploaded — the frontend checks this
+        to decide whether to show preview/download buttons.
+        """
+        if not obj.document:
+            return None
+        request = self.context.get("request")
+        if request:
+            # request.build_absolute_uri() turns relative path into full URL:
+            # '/media/contracts/2026/02/file.pdf' → 'http://localhost:8000/media/contracts/2026/02/file.pdf'
+            return request.build_absolute_uri(obj.document.url)
+        return obj.document.url
+
+    def validate_document(self, value):
+        """Validate uploaded file: only PDF, max 5 MB."""
+        if value is None:
+            return value
+
+        # 1. Check file extension
+        if not value.name.lower().endswith(".pdf"):
+            raise serializers.ValidationError("Solo file PDF sono accettati.")
+
+        # 2. Check content type (security: a .exe renamed to .pdf won't pass)
+        if value.content_type != "application/pdf":
+            raise serializers.ValidationError("Il file non è un PDF valido.")
+
+        # 3. Check file size (5 MB limit)
+        max_size = 5 * 1024 * 1024  # 5 MB
+        if value.size > max_size:
+            raise serializers.ValidationError("Il file non può superare 5 MB.")
+
+        return value
 
     def validate(self, data):
         end_date = data.get("end_date")

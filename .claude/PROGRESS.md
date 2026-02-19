@@ -168,6 +168,32 @@
 - Hard delete vs soft delete messaging: "irreversibile" for hard, "reversibile" for soft
 - Guard clauses in API functions: fail-fast with explicit error when required params are missing
 
+### EPIC 2 Phase 2: PDF Upload (done)
+- [x] Django settings: MEDIA_ROOT, MEDIA_URL, media URL serving in development
+- [x] Contract model: FileField(upload_to='contracts/%Y/%m/') with migration 0003
+- [x] ContractSerializer: SerializerMethodField for document_url (absolute URL builder)
+- [x] validate_document(): 3-level validation (extension, content-type, size 5MB)
+- [x] api.js: FormData support (buildContractBody helper, detect FormData in apiRequest)
+- [x] ContractForm.vue: file input, client-side PDF/size validation, existing document link
+- [x] ContractList.vue: "PDF" column with Visualizza/dash
+- [x] Backend tests: 7 new (upload, validation, document_url, PATCH add document)
+- [x] Frontend tests: 8 new (file input, validation, preview link)
+- [x] Total tests: 78 (29 backend + 49 frontend)
+
+### Concepts mastered (EPIC 2 Phase 2):
+- FileField: stores path in DB (VARCHAR), file on disk — not a BLOB
+- MEDIA_ROOT vs MEDIA_URL: physical storage path vs HTTP URL prefix
+- upload_to with strftime: 'contracts/%Y/%m/' creates date-based subdirectories
+- multipart/form-data vs application/json: binary data needs multipart encoding
+- FormData: browser API for building multipart request body
+- Content-Type auto-detection: never set Content-Type manually on FormData (browser adds boundary)
+- SerializerMethodField: computed column pattern, read-only, uses request.build_absolute_uri()
+- File validation cascade: extension → content-type → size (defense in depth)
+- Client-side validation mirroring: fail-fast UX before server roundtrip
+- SimpleUploadedFile: Django test utility for creating fake uploaded files
+- override_settings(MEDIA_ROOT=tempdir): isolate test file storage from real MEDIA_ROOT
+- if settings.DEBUG: urlpatterns +=: serve media files only in development
+
 ### Next steps:
-- [ ] EPIC 2 Phase 2: File upload (PDF) + S3 storage
+- [ ] EPIC 2 deferred: contract expiration indicator (<30 days)
 - [ ] EPIC 3: Onboarding automation

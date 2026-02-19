@@ -10,8 +10,15 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
  *   - Altro errore:      throw Error
  */
 async function apiRequest(endpoint, options = {}) {
+  // FormData: il browser setta Content-Type automaticamente (con boundary).
+  // JSON: serve settarlo noi esplicitamente.
+  // Settare Content-Type manualmente su FormData ROMPE la request.
+  const headers = options.body instanceof FormData
+    ? {}
+    : { 'Content-Type': 'application/json' }
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...options,
   })
 
@@ -80,22 +87,40 @@ export function fetchContracts(employeeId) {
   return apiRequest(`/employees/${employeeId}/contracts/`)
 }
 
-// --- POST nuovo contratto ---
-export function createContract(employeeId, payload) {
+/**
+ * Costruisce il body per le request dei contratti.
+ * Se c'è un file → FormData (multipart), altrimenti → JSON (come prima).
+ */
+function buildContractBody(payload, file) {
+  if (!file) return JSON.stringify(payload)
+
+  const formData = new FormData()
+  for (const [key, value] of Object.entries(payload)) {
+    // Salta campi vuoti/null — stessa logica del cleanup end_date
+    if (value !== null && value !== undefined && value !== '') {
+      formData.append(key, value)
+    }
+  }
+  formData.append('document', file)
+  return formData
+}
+
+// --- POST nuovo contratto (con file opzionale) ---
+export function createContract(employeeId, payload, file = null) {
   if (!employeeId) throw new Error('Employee ID is required')
   return apiRequest(`/employees/${employeeId}/contracts/`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: buildContractBody(payload, file),
   })
 }
 
-// --- PATCH aggiornamento parziale contratto ---
-export function updateContract(employeeId, contractId, payload) {
+// --- PATCH aggiornamento parziale contratto (con file opzionale) ---
+export function updateContract(employeeId, contractId, payload, file = null) {
   if (!employeeId) throw new Error('Employee ID is required')
   if (!contractId) throw new Error('Contract ID is required')
   return apiRequest(`/employees/${employeeId}/contracts/${contractId}/`, {
     method: 'PATCH',
-    body: JSON.stringify(payload),
+    body: buildContractBody(payload, file),
   })
 }
 

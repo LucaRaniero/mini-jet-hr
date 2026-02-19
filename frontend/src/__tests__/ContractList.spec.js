@@ -30,6 +30,7 @@ const mockContracts = {
       ral: '35000.00',
       start_date: '2024-01-15',
       end_date: null,
+      document_url: 'http://localhost:8000/media/contracts/2026/02/contratto.pdf',
     },
     {
       id: 11,
@@ -39,6 +40,7 @@ const mockContracts = {
       ral: '28000.00',
       start_date: '2023-01-01',
       end_date: '2023-12-31',
+      document_url: null,
     },
   ],
 }
@@ -169,6 +171,25 @@ describe('ContractList', () => {
   it('shows success message from query string', async () => {
     const wrapper = await mountList({ message: 'Contratto creato con successo.' })
     expect(wrapper.text()).toContain('Contratto creato con successo.')
+  })
+
+  it('shows Visualizza link when document_url exists', async () => {
+    const wrapper = await mountList()
+    // Primo contratto ha document_url
+    const pdfLinks = wrapper.findAll('a[target="_blank"]')
+    expect(pdfLinks.length).toBeGreaterThanOrEqual(1)
+    expect(pdfLinks[0].text()).toBe('Visualizza')
+    expect(pdfLinks[0].attributes('href')).toBe(
+      'http://localhost:8000/media/contracts/2026/02/contratto.pdf',
+    )
+  })
+
+  it('shows dash when document_url is null', async () => {
+    const wrapper = await mountList()
+    const rows = wrapper.findAll('tbody tr')
+    // Secondo contratto (index 1) non ha document → mostra "—"
+    const pdfCell = rows[1].findAll('td')[6] // colonna PDF (index 6, 0-based)
+    expect(pdfCell.text()).toBe('—')
   })
 
   it('shows empty state when no contracts', async () => {

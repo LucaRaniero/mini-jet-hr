@@ -83,17 +83,17 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 2: Gestione Contratti
 *Obiettivo learning: Foreign keys, relazioni, file upload*
 
-### US-005: Associare contratto a dipendente ✅ (Phase 1 done, PDF upload deferred)
+### US-005: Associare contratto a dipendente ✅
 **Come** responsabile HR
 **Voglio** caricare e associare un contratto a un dipendente
 **Così che** possa digitalizzare i documenti contrattuali
 
 **Acceptance Criteria:**
-- [ ] Upload PDF del contratto — deferred to Phase 2 (file upload + S3)
+- [x] Upload PDF del contratto (FileField, multipart/form-data, validazione ext/type/size)
 - [x] Campi: tipo contratto (indeterminato/determinato/stage), data inizio, data fine, RAL
 - [x] Un dipendente può avere più contratti (storico)
 - [x] Solo l'ultimo contratto è "attivo" (end_date IS NULL)
-- [ ] Preview PDF nel browser — deferred to Phase 2
+- [x] Preview PDF nel browser (Visualizza link, opens in new tab)
 
 **Technical Notes:**
 - Django Model: Contract (ForeignKey to Employee)
@@ -104,16 +104,16 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-006: Visualizzare storico contratti ✅ (Phase 1 done, PDF download deferred)
+### US-006: Visualizzare storico contratti ✅ (expiration indicator deferred)
 **Come** responsabile HR
 **Voglio** vedere tutti i contratti di un dipendente
 **Così che** possa avere visibilità sullo storico lavorativo
 
 **Acceptance Criteria:**
 - [x] API: GET /api/employees/{id}/contracts/ returns contracts ordered by start_date DESC
-- [x] Lista contratti con colonne: tipo, CCNL, RAL, date, stato
+- [x] Lista contratti con colonne: tipo, CCNL, RAL, date, stato, PDF
 - [x] Evidenziato il contratto attivo (badge verde "Attivo" / grigio "Chiuso")
-- [ ] Download PDF per ogni contratto — deferred to Phase 2
+- [x] Visualizza/Download PDF per ogni contratto (link in colonna PDF)
 - [ ] Indicatore se contratto in scadenza (<30 giorni) — deferred
 
 **Technical Notes:**

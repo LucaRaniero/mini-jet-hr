@@ -1,10 +1,16 @@
+import shutil
+import tempfile
 from datetime import date, timedelta
 
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from .models import Contract, Employee
+
+# Directory temporanea per i media files nei test — evita di sporcare MEDIA_ROOT reale
+TEMP_MEDIA_ROOT = tempfile.mkdtemp()
 
 
 class EmployeeAPITest(TestCase):
@@ -291,3 +297,101 @@ class ContractAPITest(TestCase):
         response = self.client.get(other_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["results"], [])
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class ContractDocumentAPITest(TestCase):
+    """Tests for PDF upload on /api/employees/{id}/contracts/ (US-005 Phase 2)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        self.url = f"/api/employees/{self.employee.id}/contracts/"
+        # Payload base per multipart — i campi vanno come stringhe singole
+        self.base_fields = {
+            "contract_type": "indeterminato",
+            "ccnl": "metalmeccanico",
+            "ral": "35000.00",
+            "start_date": "2026-01-15",
+        }
+
+    @classmethod
+    def tearDownClass(cls):
+        # Pulizia della directory temporanea dopo tutti i test
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
+
+    def _make_pdf(self, name="contratto.pdf", size=1024):
+        """Helper: crea un SimpleUploadedFile con content-type PDF."""
+        return SimpleUploadedFile(name, b"%PDF-" + b"x" * size, content_type="application/pdf")
+
+    def test_create_contract_with_pdf_returns_201(self):
+        """POST multipart with PDF should return 201 and save the file."""
+        data = {**self.base_fields, "document": self._make_pdf()}
+        response = self.client.post(self.url, data, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        contract = Contract.objects.first()
+        # Il campo document contiene il path relativo (non vuoto)
+        self.assertTrue(contract.document.name)
+        self.assertIn("contracts/", contract.document.name)
+
+    def test_create_contract_without_pdf_returns_201(self):
+        """POST without document should still work (document is optional)."""
+        response = self.client.post(self.url, self.base_fields, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        contract = Contract.objects.first()
+        self.assertFalse(contract.document.name)
+
+    def test_document_url_present_when_file_uploaded(self):
+        """GET should return document_url with absolute URL when file exists."""
+        data = {**self.base_fields, "document": self._make_pdf()}
+        self.client.post(self.url, data, format="multipart")
+        contract = Contract.objects.first()
+
+        response = self.client.get(f"{self.url}{contract.id}/")
+        self.assertIsNotNone(response.data["document_url"])
+        self.assertIn("/media/contracts/", response.data["document_url"])
+
+    def test_document_url_null_when_no_file(self):
+        """GET should return document_url: null when no file uploaded."""
+        self.client.post(self.url, self.base_fields, format="json")
+        contract = Contract.objects.first()
+
+        response = self.client.get(f"{self.url}{contract.id}/")
+        self.assertIsNone(response.data["document_url"])
+
+    def test_reject_non_pdf_file(self):
+        """POST with a non-PDF file should return 400."""
+        fake_txt = SimpleUploadedFile("notes.txt", b"hello", content_type="text/plain")
+        data = {**self.base_fields, "document": fake_txt}
+        response = self.client.post(self.url, data, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("document", response.data)
+
+    def test_reject_oversized_file(self):
+        """POST with a file > 5 MB should return 400."""
+        big_pdf = self._make_pdf(size=6 * 1024 * 1024)
+        data = {**self.base_fields, "document": big_pdf}
+        response = self.client.post(self.url, data, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("document", response.data)
+
+    def test_patch_add_document_to_existing_contract(self):
+        """PATCH should allow adding a PDF to a contract created without one."""
+        self.client.post(self.url, self.base_fields, format="json")
+        contract = Contract.objects.first()
+        self.assertFalse(contract.document.name)
+
+        detail_url = f"{self.url}{contract.id}/"
+        response = self.client.patch(
+            detail_url, {"document": self._make_pdf()}, format="multipart"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        contract.refresh_from_db()
+        self.assertTrue(contract.document.name)
