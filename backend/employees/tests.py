@@ -389,9 +389,7 @@ class ContractDocumentAPITest(TestCase):
         self.assertFalse(contract.document.name)
 
         detail_url = f"{self.url}{contract.id}/"
-        response = self.client.patch(
-            detail_url, {"document": self._make_pdf()}, format="multipart"
-        )
+        response = self.client.patch(detail_url, {"document": self._make_pdf()}, format="multipart")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         contract.refresh_from_db()
         self.assertTrue(contract.document.name)
