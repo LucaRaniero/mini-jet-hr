@@ -2,7 +2,7 @@ from datetime import date
 
 from rest_framework import serializers
 
-from .models import Contract, Employee
+from .models import Contract, Employee, OnboardingStep, OnboardingTemplate
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -106,3 +106,61 @@ class ContractSerializer(serializers.ModelSerializer):
         if end_date and start_date and end_date < start_date:
             raise serializers.ValidationError({"end_date": "La data di fine non può essere precedente alla data di inizio."})
         return data
+
+
+class OnboardingTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for onboarding task templates (the lookup table).
+
+    Simple CRUD — no computed fields, no cross-field validation.
+    HR uses this to define what tasks every new employee must complete.
+    """
+
+    class Meta:
+        model = OnboardingTemplate
+        fields = [
+            "id",
+            "name",
+            "description",
+            "order",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class OnboardingStepSerializer(serializers.ModelSerializer):
+    """Serializer for an employee's onboarding progress.
+
+    Includes denormalized fields from the template (via source="template.field").
+    This is the DRF equivalent of a SQL JOIN — the ORM follows the FK
+    and reads the attribute from the related model.
+    """
+
+    # source="template.name" → segue la FK template, legge .name
+    # Come: SELECT t.name AS template_name FROM steps s JOIN templates t ...
+    template_name = serializers.CharField(source="template.name", read_only=True)
+    template_description = serializers.CharField(source="template.description", read_only=True)
+
+    class Meta:
+        model = OnboardingStep
+        fields = [
+            "id",
+            "employee",
+            "template",
+            "template_name",
+            "template_description",
+            "is_completed",
+            "completed_at",
+            "notes",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "employee",
+            "template",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]

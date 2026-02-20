@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from .models import Contract, Employee
+from .models import Contract, Employee, OnboardingStep, OnboardingTemplate
 
 # Directory temporanea per i media files nei test — evita di sporcare MEDIA_ROOT reale
 TEMP_MEDIA_ROOT = tempfile.mkdtemp()
@@ -445,3 +445,187 @@ class ContractExpirationAPITest(TestCase):
         far = date.today() + timedelta(days=90)
         data = self._create_contract(end_date=far)
         self.assertFalse(data["is_expiring"])
+
+
+class OnboardingTemplateAPITest(TestCase):
+    """Tests for /api/onboarding-templates/ endpoint (US-008)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.url = "/api/onboarding-templates/"
+        self.valid_payload = {
+            "name": "Firma contratto",
+            "description": "Firmare il contratto di assunzione.",
+            "order": 1,
+        }
+
+    def test_list_templates_empty(self):
+        """GET should return 200 with empty list when no templates exist."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"], [])
+
+    def test_create_template_returns_201(self):
+        """POST with valid payload should return 201 and create the template."""
+        response = self.client.post(self.url, self.valid_payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(OnboardingTemplate.objects.count(), 1)
+        self.assertEqual(OnboardingTemplate.objects.first().name, "Firma contratto")
+
+    def test_list_excludes_inactive(self):
+        """Soft-deleted templates should not appear in the default list."""
+        OnboardingTemplate.objects.create(name="Active", order=1)
+        OnboardingTemplate.objects.create(name="Inactive", order=2, is_active=False)
+        response = self.client.get(self.url)
+        names = [t["name"] for t in response.data["results"]]
+        self.assertIn("Active", names)
+        self.assertNotIn("Inactive", names)
+
+    def test_delete_soft_deletes(self):
+        """DELETE should set is_active=False, not remove from DB."""
+        template = OnboardingTemplate.objects.create(name="Test", order=1)
+        response = self.client.delete(f"{self.url}{template.id}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        template.refresh_from_db()
+        self.assertFalse(template.is_active)
+        self.assertEqual(OnboardingTemplate.objects.count(), 1)
+
+    def test_update_template(self):
+        """PATCH should update specified fields."""
+        template = OnboardingTemplate.objects.create(name="Old name", order=1)
+        response = self.client.patch(
+            f"{self.url}{template.id}/",
+            {"name": "New name"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        template.refresh_from_db()
+        self.assertEqual(template.name, "New name")
+
+    def test_list_ordered_by_order_field(self):
+        """Templates should be returned ordered by 'order' field."""
+        OnboardingTemplate.objects.create(name="Third", order=3)
+        OnboardingTemplate.objects.create(name="First", order=1)
+        OnboardingTemplate.objects.create(name="Second", order=2)
+        response = self.client.get(self.url)
+        names = [t["name"] for t in response.data["results"]]
+        self.assertEqual(names, ["First", "Second", "Third"])
+
+
+class OnboardingStepAPITest(TestCase):
+    """Tests for /api/employees/{id}/onboarding/ endpoint (US-008)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        self.url = f"/api/employees/{self.employee.id}/onboarding/"
+        # Creiamo 3 template attivi (come INSERT INTO onboarding_templates)
+        self.t1 = OnboardingTemplate.objects.create(name="Firma contratto", order=1)
+        self.t2 = OnboardingTemplate.objects.create(name="Setup email", order=2)
+        self.t3 = OnboardingTemplate.objects.create(name="Training sicurezza", order=3)
+
+    def test_list_empty_before_start(self):
+        """GET should return empty list before onboarding is started."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"], [])
+
+    def test_start_onboarding_creates_steps(self):
+        """POST should bulk-create one step per active template."""
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(OnboardingStep.objects.filter(employee=self.employee).count(), 3)
+
+    def test_start_onboarding_idempotent(self):
+        """Calling POST twice should not create duplicate steps."""
+        self.client.post(self.url)
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(OnboardingStep.objects.filter(employee=self.employee).count(), 3)
+
+    def test_start_skips_inactive_templates(self):
+        """POST should not create steps for inactive templates."""
+        self.t3.is_active = False
+        self.t3.save()
+        response = self.client.post(self.url)
+        self.assertEqual(len(response.data), 2)
+        template_names = [s["template_name"] for s in response.data]
+        self.assertNotIn("Training sicurezza", template_names)
+
+    def test_start_adds_new_templates(self):
+        """POST after adding a new template should create only the missing step."""
+        self.client.post(self.url)
+        self.assertEqual(OnboardingStep.objects.filter(employee=self.employee).count(), 3)
+
+        # Aggiungi un nuovo template
+        OnboardingTemplate.objects.create(name="Badge aziendale", order=4)
+        response = self.client.post(self.url)
+        self.assertEqual(len(response.data), 4)
+        self.assertEqual(OnboardingStep.objects.filter(employee=self.employee).count(), 4)
+
+    def test_start_nonexistent_employee_returns_404(self):
+        """POST to a non-existent employee should return 404."""
+        response = self.client.post("/api/employees/99999/onboarding/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_toggle_step_completed(self):
+        """PATCH is_completed=True should set completed_at automatically."""
+        self.client.post(self.url)
+        step = OnboardingStep.objects.filter(employee=self.employee).first()
+        detail_url = f"{self.url}{step.id}/"
+
+        response = self.client.patch(detail_url, {"is_completed": True}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        step.refresh_from_db()
+        self.assertTrue(step.is_completed)
+        self.assertIsNotNone(step.completed_at)
+
+    def test_toggle_step_back_to_incomplete(self):
+        """PATCH is_completed=False should reset completed_at to None."""
+        self.client.post(self.url)
+        step = OnboardingStep.objects.filter(employee=self.employee).first()
+        detail_url = f"{self.url}{step.id}/"
+
+        # Completa, poi de-completa
+        self.client.patch(detail_url, {"is_completed": True}, format="json")
+        response = self.client.patch(detail_url, {"is_completed": False}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        step.refresh_from_db()
+        self.assertFalse(step.is_completed)
+        self.assertIsNone(step.completed_at)
+
+    def test_steps_include_template_info(self):
+        """GET should include denormalized template_name and template_description."""
+        self.t1.description = "Firmare tutti i documenti contrattuali."
+        self.t1.save()
+        self.client.post(self.url)
+
+        response = self.client.get(self.url)
+        first_step = response.data["results"][0]
+        self.assertEqual(first_step["template_name"], "Firma contratto")
+        self.assertEqual(
+            first_step["template_description"],
+            "Firmare tutti i documenti contrattuali.",
+        )
+
+    def test_steps_isolated_by_employee(self):
+        """Steps of employee A should not appear under employee B."""
+        self.client.post(self.url)
+
+        other = Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna.bianchi@example.com",
+            role="employee",
+            hire_date="2024-06-01",
+        )
+        other_url = f"/api/employees/{other.id}/onboarding/"
+        response = self.client.get(other_url)
+        self.assertEqual(response.data["results"], [])
