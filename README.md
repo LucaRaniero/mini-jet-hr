@@ -50,15 +50,17 @@ Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/)
 - [x] Contract management (API + full frontend: nested CRUD under employees)
 - [x] PDF upload for contracts (FileField, multipart, preview in browser)
 - [x] Contract status badges (Pianificato/In Scadenza/Attivo/Scaduto) with expiration indicator
-- [x] Vue Router with 6 routes (3 employee + 3 contract)
+- [x] Onboarding checklist (configurable templates, interactive checklist with progress bar)
+- [x] Vue Router with 10 routes (3 employee + 3 contract + 3 onboarding template + 1 checklist)
 - [x] Docker containerization (PostgreSQL + Django + Vue)
-- [x] 85 automated tests (33 backend + 52 frontend)
+- [x] API documentation with drf-spectacular (Swagger UI + ReDoc)
+- [x] 131 automated tests (49 backend + 82 frontend)
 
 ### In Progress
 - [ ] Authentication & role-based permissions
 
 ### Planned
-- [ ] Onboarding automation
+- [ ] Onboarding automation (signals, email, Celery)
 - [ ] Dashboard & analytics
 - [ ] PDF report generation
 - [ ] Email notifications
@@ -188,6 +190,6 @@ MIT License - This is a portfolio/learning project, feel free to use it for your
 
 ---
 
-**Current Status**: Week 2 of 8 | Last updated: 2026/02/19
+**Current Status**: Week 3 of 8 | Last updated: 2026/02/20
 
 *"The best way to learn is to build."*

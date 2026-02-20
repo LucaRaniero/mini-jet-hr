@@ -212,4 +212,65 @@
 - isort: Python import sorting tool — alphabetical within groups (stdlib, third-party, local)
 
 ### Next steps:
-- [ ] EPIC 3: Onboarding automation
+- [x] EPIC 3: Onboarding automation — Phase 1 done in Week 3
+
+---
+
+## Week 3: EPIC 3 — Onboarding Automation (Phase 1)
+
+### EPIC 3 Phase 1: Onboarding Checklist — Full Stack (done)
+
+#### Backend: Models + API (done)
+- [x] OnboardingTemplate model: lookup table (name, description, order, is_active soft delete)
+- [x] OnboardingStep model: fact/bridge table (employee FK CASCADE, template FK PROTECT)
+- [x] unique_together = ["employee", "template"] — composite UNIQUE constraint
+- [x] Migration 0004_onboarding_models
+- [x] OnboardingTemplateSerializer: standard CRUD
+- [x] OnboardingStepSerializer: denormalized fields via source="template.name" (JOIN equivalent)
+- [x] OnboardingTemplateViewSet: ModelViewSet with soft delete (is_active=False)
+- [x] OnboardingStepViewSet: custom create() for idempotent bulk create, perform_update() auto-sets completed_at
+- [x] Nested URLs: /api/employees/{id}/onboarding/ and /api/employees/{id}/onboarding/{step_id}/
+- [x] select_related("template") for N+1 query prevention
+- [x] http_method_names = ["get", "post", "patch"] — no PUT/DELETE on steps
+- [x] Backend tests: 16 new (6 template + 10 steps)
+- [x] Total backend tests: 49 (33 existing + 16 onboarding)
+
+#### Frontend: Components + Views (done)
+- [x] api.js: 8 new functions (5 template CRUD + 3 onboarding steps)
+- [x] Vue Router: 4 new routes (3 template + 1 checklist), total 10
+- [x] OnboardingTemplateList.vue: CRUD table with soft delete, ConfirmDialog, success messages
+- [x] OnboardingTemplateForm.vue: create/edit dual-mode (same pattern as EmployeeForm)
+- [x] OnboardingChecklist.vue: progress bar, checkbox toggle, "Avvia Onboarding" button
+- [x] 4 View wrappers: TemplateListView, TemplateCreateView, TemplateEditView, ChecklistView
+- [x] App.vue: "Template Onboarding" nav link in header
+- [x] EmployeeList.vue: "Onboarding" link per employee in actions column
+- [x] Frontend tests: 30 new (9 TemplateList + 9 TemplateForm + 12 Checklist)
+- [x] Total frontend tests: 82 (52 existing + 30 onboarding)
+
+#### Total tests: 131 (49 backend + 82 frontend)
+
+### Concepts mastered (EPIC 3 Phase 1 Backend):
+- on_delete=PROTECT: equivalent to SQL RESTRICT — prevents parent deletion if children exist
+- on_delete=CASCADE vs PROTECT: different policies for different FK semantics (employee owns steps, template is referenced)
+- unique_together: composite UNIQUE constraint — one step per (employee, template) pair
+- bulk_create(): single INSERT query instead of N queries — like INSERT INTO ... SELECT ... FROM templates
+- select_related(): SQL JOIN at query time to avoid N+1 problem (1 query instead of N+1)
+- source="template.name" on serializer: read through FK — equivalent to SELECT t.name FROM steps s JOIN templates t
+- ViewSet create() override: custom bulk logic replacing standard single-resource create
+- perform_update() override: hook to auto-manage computed fields (completed_at) on state transitions
+- http_method_names: restrict allowed HTTP methods at ViewSet level (no PUT = no full replacement, no DELETE = steps persist)
+- Idempotent POST: check existing records before insert, skip duplicates (like INSERT ... ON CONFLICT DO NOTHING)
+- Defense in depth: PROTECT on FK + soft delete on template = two layers preventing data loss
+
+### Concepts mastered (EPIC 3 Phase 1 Frontend):
+- computed() for derived progress: totalSteps, completedSteps, progressPercent — reactive recalculation
+- Promise.all for parallel fetch: employee + steps loaded simultaneously (like parallel SQL queries)
+- Conditional rendering chains: v-if (loading) → v-else-if (error) → v-if (no steps) → v-else (checklist)
+- Optimistic vs server-confirmed UI: toggle sends PATCH, waits for server response, updates local state with server data
+- Progress bar with dynamic width: :style="{ width: percent + '%' }" + Tailwind classes for color
+- @click.stop on nested clickable elements: prevent event bubbling from checkbox to parent li
+
+### Next steps:
+- [ ] EPIC 3 Phase 2: Django Signals (auto-create steps on employee creation)
+- [ ] EPIC 3 Phase 3: Email di benvenuto
+- [ ] EPIC 3 Phase 4: Celery + async tasks

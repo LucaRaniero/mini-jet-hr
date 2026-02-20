@@ -149,22 +149,25 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 
 ---
 
-### US-008: Checklist onboarding interattiva
-**Come** nuovo dipendente  
-**Voglio** vedere e completare la mia checklist onboarding  
+### US-008: Checklist onboarding interattiva ✅ (notifica HR deferred)
+**Come** nuovo dipendente
+**Voglio** vedere e completare la mia checklist onboarding
 **Così che** sappia cosa devo fare nei primi giorni
 
 **Acceptance Criteria:**
-- [ ] Lista task: "Firma contratto", "Setup email", "Training sicurezza", etc.
-- [ ] Checkbox per completare task
-- [ ] Barra progresso
-- [ ] Notifica HR quando completato al 100%
+- [x] Lista task: "Firma contratto", "Setup email", "Training sicurezza", etc.
+- [x] Checkbox per completare task
+- [x] Barra progresso
+- [ ] Notifica HR quando completato al 100% — deferred to Phase 3 (email)
 
 **Technical Notes:**
-- Django Model: OnboardingTask, OnboardingProgress
-- API endpoint: GET/PATCH /api/onboarding/{employee_id}/
-- Vue component: OnboardingChecklist.vue
-- Focus: Many-to-many relations, progress tracking, real-time updates
+- Django Models: OnboardingTemplate (lookup) + OnboardingStep (fact/bridge, unique_together)
+- API endpoints:
+  - GET/POST/PATCH/DELETE /api/onboarding-templates/ (template CRUD, soft delete)
+  - GET/POST /api/employees/{id}/onboarding/ (list steps, start onboarding via bulk create)
+  - PATCH /api/employees/{id}/onboarding/{step_id}/ (toggle completion)
+- Vue components: OnboardingTemplateList.vue, OnboardingTemplateForm.vue, OnboardingChecklist.vue
+- Focus: on_delete=PROTECT, bulk_create, select_related, source="fk.field", idempotent POST
 
 ---
 
