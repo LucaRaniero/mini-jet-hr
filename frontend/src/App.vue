@@ -9,7 +9,13 @@ import { RouterView, RouterLink } from 'vue-router'
         <RouterLink to="/" class="text-xl font-bold text-gray-900 hover:text-blue-600">
           Mini Jet HR
         </RouterLink>
-        <nav>
+        <nav class="flex items-center gap-4">
+          <RouterLink
+            to="/onboarding/templates"
+            class="text-sm text-gray-600 hover:text-blue-600"
+          >
+            Template Onboarding
+          </RouterLink>
           <RouterLink
             to="/employees/new"
             class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"

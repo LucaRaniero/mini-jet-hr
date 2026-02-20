@@ -134,6 +134,12 @@ onMounted(() => {
               Contratti
             </RouterLink>
             <RouterLink
+              :to="`/employees/${emp.id}/onboarding`"
+              class="text-blue-600 hover:underline mr-3"
+            >
+              Onboarding
+            </RouterLink>
+            <RouterLink
               :to="`/employees/${emp.id}/edit`"
               class="text-blue-600 hover:underline mr-3"
             >

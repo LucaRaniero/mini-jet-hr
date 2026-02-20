@@ -132,3 +132,65 @@ export function deleteContract(employeeId, contractId) {
     method: 'DELETE',
   })
 }
+
+// ===================== Onboarding Templates =====================
+
+// --- GET lista template attivi ---
+export function fetchOnboardingTemplates() {
+  return apiRequest('/onboarding-templates/')
+}
+
+// --- GET singolo template ---
+export function fetchOnboardingTemplate(id) {
+  return apiRequest(`/onboarding-templates/${id}/`)
+}
+
+// --- POST nuovo template ---
+export function createOnboardingTemplate(payload) {
+  return apiRequest('/onboarding-templates/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+// --- PATCH aggiornamento template ---
+export function updateOnboardingTemplate(id, payload) {
+  return apiRequest(`/onboarding-templates/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+// --- DELETE (soft delete) template ---
+export function deleteOnboardingTemplate(id) {
+  return apiRequest(`/onboarding-templates/${id}/`, {
+    method: 'DELETE',
+  })
+}
+
+// ===================== Onboarding Steps =====================
+
+// --- GET step di onboarding per un dipendente ---
+export function fetchOnboardingSteps(employeeId) {
+  if (!employeeId) throw new Error('Employee ID is required')
+  return apiRequest(`/employees/${employeeId}/onboarding/`)
+}
+
+// --- POST avvia onboarding (bulk create da template attivi, no body) ---
+export function startOnboarding(employeeId) {
+  if (!employeeId) throw new Error('Employee ID is required')
+  return apiRequest(`/employees/${employeeId}/onboarding/`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
+// --- PATCH toggle completamento step ---
+export function updateOnboardingStep(employeeId, stepId, payload) {
+  if (!employeeId) throw new Error('Employee ID is required')
+  if (!stepId) throw new Error('Step ID is required')
+  return apiRequest(`/employees/${employeeId}/onboarding/${stepId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
