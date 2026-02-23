@@ -270,7 +270,25 @@
 - Progress bar with dynamic width: :style="{ width: percent + '%' }" + Tailwind classes for color
 - @click.stop on nested clickable elements: prevent event bubbling from checkbox to parent li
 
+### EPIC 3 Phase 2: Django Signals — Auto-Create Onboarding (done)
+- [x] Service Layer: `services.py` with `create_onboarding_steps_for_employee()` (extracted from ViewSet)
+- [x] Signal: `signals.py` with `post_save` receiver on Employee (`created=True` guard)
+- [x] Registration: `apps.py` `ready()` method to import signals module
+- [x] Refactoring: `OnboardingStepViewSet.create()` delegates to service (DRY)
+- [x] Tests: 7 new signal tests + 1 existing test fixed
+- [x] Total backend tests: 56 (49 existing + 7 signal)
+
+### Concepts mastered (EPIC 3 Phase 2):
+- Django Signals: application-level equivalent of database triggers (post_save ≈ AFTER INSERT)
+- `created` parameter: True on INSERT, False on UPDATE — reliable way to distinguish operations
+- `**kwargs` in signal receivers: forward-compatibility convention (Django may add new params)
+- `ready()` in AppConfig: official place for side-effect imports (signal registration)
+- `@receiver` decorator: cleaner alternative to `signal.connect()` for connecting handlers
+- Service Layer pattern: extract business logic from views/signals into reusable functions (like stored procedures)
+- DRY refactoring: ViewSet + Signal both call the same service function
+- Signal limitations vs DB triggers: `bulk_create()`, `update()`, raw SQL bypass signals entirely
+- `noqa: F401`: tells linters to ignore "unused import" when import is for side effects
+
 ### Next steps:
-- [ ] EPIC 3 Phase 2: Django Signals (auto-create steps on employee creation)
 - [ ] EPIC 3 Phase 3: Email di benvenuto
 - [ ] EPIC 3 Phase 4: Celery + async tasks

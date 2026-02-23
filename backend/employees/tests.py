@@ -616,7 +616,11 @@ class OnboardingStepAPITest(TestCase):
         )
 
     def test_steps_isolated_by_employee(self):
-        """Steps of employee A should not appear under employee B."""
+        """Steps of employee A should not appear under employee B.
+
+        Nota: il signal post_save auto-crea step per il nuovo dipendente
+        (i template esistono già nel setUp), ma devono essere step SEPARATI.
+        """
         self.client.post(self.url)
 
         other = Employee.objects.create(
@@ -628,4 +632,157 @@ class OnboardingStepAPITest(TestCase):
         )
         other_url = f"/api/employees/{other.id}/onboarding/"
         response = self.client.get(other_url)
-        self.assertEqual(response.data["results"], [])
+        # Il signal crea 3 step anche per il nuovo dipendente
+        self.assertEqual(len(response.data["results"]), 3)
+        # Ma gli ID devono essere diversi da quelli del dipendente A
+        a_step_ids = set(
+            OnboardingStep.objects.filter(employee=self.employee).values_list(
+                "id", flat=True
+            )
+        )
+        other_step_ids = {s["id"] for s in response.data["results"]}
+        self.assertEqual(a_step_ids & other_step_ids, set())
+
+
+class OnboardingSignalTest(TestCase):
+    """Tests for the post_save signal that auto-creates onboarding steps.
+
+    Concetto: il signal equivale a un AFTER INSERT trigger su employees.
+    Quando si crea un Employee, il signal chiama il service layer che
+    crea automaticamente uno step per ogni template attivo.
+    """
+
+    def test_new_employee_gets_steps_from_active_templates(self):
+        """Creating a new employee should auto-create one step per active template."""
+        t1 = OnboardingTemplate.objects.create(name="Firma contratto", order=1)
+        t2 = OnboardingTemplate.objects.create(name="Setup email", order=2)
+
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+
+        steps = OnboardingStep.objects.filter(employee=employee)
+        self.assertEqual(steps.count(), 2)
+        template_ids = set(steps.values_list("template_id", flat=True))
+        self.assertEqual(template_ids, {t1.id, t2.id})
+
+    def test_signal_skips_inactive_templates(self):
+        """Inactive templates should not generate onboarding steps."""
+        OnboardingTemplate.objects.create(name="Active", order=1)
+        OnboardingTemplate.objects.create(name="Inactive", order=2, is_active=False)
+
+        employee = Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna@example.com",
+            role="employee",
+            hire_date="2024-06-01",
+        )
+
+        steps = OnboardingStep.objects.filter(employee=employee)
+        self.assertEqual(steps.count(), 1)
+        self.assertEqual(steps.first().template.name, "Active")
+
+    def test_signal_does_not_fire_on_update(self):
+        """Updating an employee should NOT create new onboarding steps."""
+        OnboardingTemplate.objects.create(name="Task", order=1)
+
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        initial_count = OnboardingStep.objects.filter(employee=employee).count()
+
+        # Update employee (triggers save, but created=False)
+        employee.department = "Engineering"
+        employee.save()
+
+        self.assertEqual(
+            OnboardingStep.objects.filter(employee=employee).count(),
+            initial_count,
+        )
+
+    def test_signal_does_not_fire_on_soft_delete(self):
+        """Soft-deleting an employee should NOT create new onboarding steps."""
+        OnboardingTemplate.objects.create(name="Task", order=1)
+
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        initial_count = OnboardingStep.objects.filter(employee=employee).count()
+
+        # Soft delete (is_active = False, then .save() → created=False)
+        employee.is_active = False
+        employee.save()
+
+        self.assertEqual(
+            OnboardingStep.objects.filter(employee=employee).count(),
+            initial_count,
+        )
+
+    def test_no_active_templates_no_error(self):
+        """Creating an employee with zero active templates should not raise."""
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        self.assertEqual(
+            OnboardingStep.objects.filter(employee=employee).count(), 0
+        )
+
+    def test_signal_is_idempotent(self):
+        """Calling the service function again should not create duplicates."""
+        OnboardingTemplate.objects.create(name="Task", order=1)
+
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        # Signal already created 1 step. Call service again manually:
+        from employees.services import create_onboarding_steps_for_employee
+
+        new_steps = create_onboarding_steps_for_employee(employee)
+        self.assertEqual(new_steps, [])
+        self.assertEqual(
+            OnboardingStep.objects.filter(employee=employee).count(), 1
+        )
+
+    def test_api_create_employee_auto_creates_steps(self):
+        """POST /api/employees/ should trigger signal and auto-create steps."""
+        OnboardingTemplate.objects.create(name="Firma contratto", order=1)
+        OnboardingTemplate.objects.create(name="Setup email", order=2)
+
+        client = APIClient()
+        response = client.post(
+            "/api/employees/",
+            {
+                "first_name": "Mario",
+                "last_name": "Rossi",
+                "email": "mario.rossi@example.com",
+                "role": "employee",
+                "hire_date": "2024-01-15",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        employee_id = response.data["id"]
+        steps = OnboardingStep.objects.filter(employee_id=employee_id)
+        self.assertEqual(steps.count(), 2)

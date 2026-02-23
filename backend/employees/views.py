@@ -11,6 +11,7 @@ from .serializers import (
     OnboardingStepSerializer,
     OnboardingTemplateSerializer,
 )
+from .services import create_onboarding_steps_for_employee
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):
@@ -124,22 +125,14 @@ class OnboardingStepViewSet(viewsets.ModelViewSet):
         return OnboardingStep.objects.filter(employee_id=self.kwargs["employee_pk"]).select_related("template")
 
     def create(self, request, *args, **kwargs):
-        """Start onboarding: bulk create steps from all active templates.
+        """Start/sync onboarding: crea step mancanti dai template attivi.
 
-        Idempotent: if steps already exist for a template, they're skipped.
-        No request body needed — the data comes from the templates table.
+        Delega la business logic al service layer (DRY).
+        Utile anche per "sincronizzare" quando si aggiungono nuovi template
+        dopo la creazione del dipendente.
         """
         employee = get_object_or_404(Employee, pk=self.kwargs["employee_pk"])
-        templates = OnboardingTemplate.objects.filter(is_active=True)
-
-        # Trova template per cui lo step esiste già (evita duplicati)
-        existing_template_ids = set(OnboardingStep.objects.filter(employee=employee).values_list("template_id", flat=True))
-
-        # Crea step solo per i template mancanti
-        new_steps = [OnboardingStep(employee=employee, template=t) for t in templates if t.id not in existing_template_ids]
-
-        if new_steps:
-            OnboardingStep.objects.bulk_create(new_steps)
+        create_onboarding_steps_for_employee(employee)
 
         # Ritorna la lista completa (nuovi + esistenti)
         steps = self.get_queryset()
