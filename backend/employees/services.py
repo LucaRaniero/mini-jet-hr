@@ -37,18 +37,10 @@ def create_onboarding_steps_for_employee(employee):
     templates = OnboardingTemplate.objects.filter(is_active=True)
 
     # Trova template per cui lo step esiste già (evita duplicati)
-    existing_template_ids = set(
-        OnboardingStep.objects.filter(employee=employee).values_list(
-            "template_id", flat=True
-        )
-    )
+    existing_template_ids = set(OnboardingStep.objects.filter(employee=employee).values_list("template_id", flat=True))
 
     # Crea step solo per i template mancanti
-    new_steps = [
-        OnboardingStep(employee=employee, template=t)
-        for t in templates
-        if t.id not in existing_template_ids
-    ]
+    new_steps = [OnboardingStep(employee=employee, template=t) for t in templates if t.id not in existing_template_ids]
 
     if new_steps:
         OnboardingStep.objects.bulk_create(new_steps)

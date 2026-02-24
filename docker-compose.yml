@@ -23,6 +23,17 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis 7 (Celery message broker — equivalent to SQL Service Broker queue)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   # Django backend
   backend:
     build:
@@ -35,6 +46,24 @@ services:
     env_file:
       - .env
     depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Celery worker (same codebase, different entrypoint — like SQL Agent vs SQL Server)
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A minijet worker --loglevel=info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
       db:
         condition: service_healthy
 

@@ -1,6 +1,7 @@
 import shutil
 import tempfile
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -9,6 +10,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from .models import Contract, Employee, OnboardingStep, OnboardingTemplate
+from .tasks import send_welcome_email_task
 
 # Directory temporanea per i media files nei test — evita di sporcare MEDIA_ROOT reale
 TEMP_MEDIA_ROOT = tempfile.mkdtemp()
@@ -636,11 +638,7 @@ class OnboardingStepAPITest(TestCase):
         # Il signal crea 3 step anche per il nuovo dipendente
         self.assertEqual(len(response.data["results"]), 3)
         # Ma gli ID devono essere diversi da quelli del dipendente A
-        a_step_ids = set(
-            OnboardingStep.objects.filter(employee=self.employee).values_list(
-                "id", flat=True
-            )
-        )
+        a_step_ids = set(OnboardingStep.objects.filter(employee=self.employee).values_list("id", flat=True))
         other_step_ids = {s["id"] for s in response.data["results"]}
         self.assertEqual(a_step_ids & other_step_ids, set())
 
@@ -741,9 +739,7 @@ class OnboardingSignalTest(TestCase):
             role="employee",
             hire_date="2024-01-15",
         )
-        self.assertEqual(
-            OnboardingStep.objects.filter(employee=employee).count(), 0
-        )
+        self.assertEqual(OnboardingStep.objects.filter(employee=employee).count(), 0)
 
     def test_signal_is_idempotent(self):
         """Calling the service function again should not create duplicates."""
@@ -761,9 +757,7 @@ class OnboardingSignalTest(TestCase):
 
         new_steps = create_onboarding_steps_for_employee(employee)
         self.assertEqual(new_steps, [])
-        self.assertEqual(
-            OnboardingStep.objects.filter(employee=employee).count(), 1
-        )
+        self.assertEqual(OnboardingStep.objects.filter(employee=employee).count(), 1)
 
     def test_api_create_employee_auto_creates_steps(self):
         """POST /api/employees/ should trigger signal and auto-create steps."""
@@ -915,3 +909,81 @@ class WelcomeEmailTest(TestCase):
         )
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["mario.rossi@example.com"])
+
+
+class CeleryTaskTest(TestCase):
+    """Tests for Celery async tasks (EPIC 3 Phase 4).
+
+    Con CELERY_TASK_ALWAYS_EAGER=True (conftest.py), i task vengono
+    eseguiti subito nel processo di test — nessun Redis necessario.
+    Equivale a: testare una stored procedure chiamandola direttamente
+    invece di schedulare un job SQL Agent.
+    """
+
+    def test_send_welcome_email_task_sends_email(self):
+        """Task should send exactly one email when called with valid employee PK."""
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        mail.outbox.clear()  # Reset: signal already sent one email
+
+        send_welcome_email_task(employee.pk)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["mario.rossi@example.com"])
+
+    def test_send_welcome_email_task_nonexistent_employee(self):
+        """Task should silently skip if employee PK doesn't exist in DB."""
+        send_welcome_email_task(99999)  # PK inesistente
+
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_send_welcome_email_task_retries_on_smtp_failure(self):
+        """Task should call self.retry() when send_mail raises an exception."""
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        mail.outbox.clear()
+
+        with patch("employees.services.send_mail", side_effect=ConnectionError("SMTP down")):
+            with patch.object(send_welcome_email_task, "retry", side_effect=ConnectionError) as mock_retry:
+                with self.assertRaises(ConnectionError):
+                    send_welcome_email_task(employee.pk)
+
+                mock_retry.assert_called_once()
+
+    def test_signal_queues_task_on_employee_creation(self):
+        """Signal should call send_welcome_email_task.delay() on new employee."""
+        with patch("employees.signals.send_welcome_email_task") as mock_task:
+            Employee.objects.create(
+                first_name="Mario",
+                last_name="Rossi",
+                email="mario.rossi@example.com",
+                role="employee",
+                hire_date="2024-01-15",
+            )
+            mock_task.delay.assert_called_once()
+
+    def test_signal_does_not_queue_task_on_update(self):
+        """Updating an employee should NOT queue the email task."""
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+
+        with patch("employees.signals.send_welcome_email_task") as mock_task:
+            employee.department = "Engineering"
+            employee.save()
+
+            mock_task.delay.assert_not_called()

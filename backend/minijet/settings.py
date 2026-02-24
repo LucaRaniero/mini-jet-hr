@@ -157,6 +157,15 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
 
+# Celery — async task queue (Redis as message broker).
+# Equivale alla configurazione di SQL Agent: connection string al broker,
+# formato dei messaggi, e dove salvare i risultati dei task.
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+
 # Email — Strategy Pattern: stessa send_mail(), backend diverso per ambiente.
 # console → stampa su stdout (docker-compose logs backend)
 # smtp    → invia via server SMTP reale (produzione)
