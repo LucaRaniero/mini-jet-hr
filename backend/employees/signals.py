@@ -9,7 +9,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from .models import Employee
-from .services import create_onboarding_steps_for_employee
+from .services import create_onboarding_steps_for_employee, send_welcome_email
 
 
 @receiver(post_save, sender=Employee)
@@ -31,3 +31,4 @@ def auto_create_onboarding_steps(sender, instance, created, **kwargs):
     """
     if created:
         create_onboarding_steps_for_employee(instance)
+        send_welcome_email(instance)

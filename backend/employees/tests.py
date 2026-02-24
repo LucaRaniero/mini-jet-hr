@@ -2,6 +2,7 @@ import shutil
 import tempfile
 from datetime import date, timedelta
 
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from rest_framework import status
@@ -786,3 +787,131 @@ class OnboardingSignalTest(TestCase):
         employee_id = response.data["id"]
         steps = OnboardingStep.objects.filter(employee_id=employee_id)
         self.assertEqual(steps.count(), 2)
+
+
+class WelcomeEmailTest(TestCase):
+    """Tests for the welcome email sent on employee creation (US-007).
+
+    Django TestCase auto-sovrascrive EMAIL_BACKEND con locmem.EmailBackend.
+    Ogni send_mail() appende a django.core.mail.outbox (una lista Python).
+    Dopo ogni test, outbox viene svuotato automaticamente.
+
+    Analogia SQL: è come avere una tabella dbo.email_log dove
+    sp_send_dbmail scrive invece di inviare realmente.
+    Poi fai SELECT * FROM email_log per verificare.
+    """
+
+    def test_welcome_email_sent_on_creation(self):
+        """Creating a new employee should send exactly one welcome email."""
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_welcome_email_recipient(self):
+        """The welcome email should be sent TO the new employee's email."""
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        self.assertEqual(mail.outbox[0].to, ["mario.rossi@example.com"])
+
+    def test_welcome_email_subject_contains_name(self):
+        """The subject should include the employee's first name."""
+        Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna@example.com",
+            role="employee",
+            hire_date="2024-06-01",
+        )
+        self.assertIn("Anna", mail.outbox[0].subject)
+
+    def test_welcome_email_body_contains_role(self):
+        """The body should include the employee's role (display label)."""
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="manager",
+            hire_date="2024-01-15",
+        )
+        self.assertIn("Manager", mail.outbox[0].body)
+
+    def test_welcome_email_body_contains_hire_date(self):
+        """The body should include the hire date in dd/mm/yyyy format."""
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        self.assertIn("15/01/2024", mail.outbox[0].body)
+
+    def test_welcome_email_from_address(self):
+        """The from address should match DEFAULT_FROM_EMAIL setting."""
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        self.assertEqual(mail.outbox[0].from_email, "hr@minijethr.local")
+
+    def test_no_email_on_update(self):
+        """Updating an existing employee should NOT send an email."""
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        mail.outbox.clear()  # Reset dopo email di creazione
+
+        employee.department = "Engineering"
+        employee.save()
+
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_no_email_on_soft_delete(self):
+        """Soft-deleting an employee should NOT send an email."""
+        employee = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+        mail.outbox.clear()
+
+        employee.is_active = False
+        employee.save()
+
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_api_create_triggers_email(self):
+        """POST /api/employees/ should trigger signal and send welcome email."""
+        client = APIClient()
+        client.post(
+            "/api/employees/",
+            {
+                "first_name": "Mario",
+                "last_name": "Rossi",
+                "email": "mario.rossi@example.com",
+                "role": "employee",
+                "hire_date": "2024-01-15",
+            },
+            format="json",
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["mario.rossi@example.com"])

@@ -156,3 +156,13 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+# Email — Strategy Pattern: stessa send_mail(), backend diverso per ambiente.
+# console → stampa su stdout (docker-compose logs backend)
+# smtp    → invia via server SMTP reale (produzione)
+# locmem  → lista in-memoria (Django TestCase auto-usa questo)
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="hr@minijethr.local")
