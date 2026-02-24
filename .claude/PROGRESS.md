@@ -289,6 +289,26 @@
 - Signal limitations vs DB triggers: `bulk_create()`, `update()`, raw SQL bypass signals entirely
 - `noqa: F401`: tells linters to ignore "unused import" when import is for side effects
 
+### EPIC 3 Phase 3: Welcome Email — Email di Benvenuto (done)
+- [x] Django settings: EMAIL_BACKEND (console in dev, env-configurable), DEFAULT_FROM_EMAIL
+- [x] Service function: `send_welcome_email()` in services.py (plain text, Italian body)
+- [x] Signal extended: post_save calls both `create_onboarding_steps` + `send_welcome_email`
+- [x] .env.example: documented email variables
+- [x] Tests: 9 new email tests (content, recipient, from, guards for update/soft-delete, API e2e)
+- [x] Total backend tests: 65 (56 existing + 9 email)
+
+### Concepts mastered (EPIC 3 Phase 3):
+- `send_mail()`: Django built-in, equivalent to SQL Server `sp_send_dbmail`
+- EMAIL_BACKEND Strategy Pattern: same `send_mail()` call, different backend per environment
+- `console.EmailBackend`: prints email to stdout (visible in Docker logs)
+- `locmem.EmailBackend`: Django TestCase auto-uses this, populates `mail.outbox` list
+- `mail.outbox`: in-memory list of sent emails in tests (like a `dbo.email_log` table)
+- `get_role_display()`: auto-generated method for TextChoices fields (like JOIN to lookup table)
+- `date.fromisoformat()`: handles string-to-date when signal receives in-memory instance
+- Signal receives in-memory instance: `create(hire_date="...")` keeps string, DB adapter converts
+- `fail_silently=False`: explicit errors vs silent swallowing (like RAISERROR vs TRY/CATCH with no re-throw)
+- `mail.outbox.clear()`: manual reset within same test when testing post-creation behavior
+
 ### Next steps:
-- [ ] EPIC 3 Phase 3: Email di benvenuto
 - [ ] EPIC 3 Phase 4: Celery + async tasks
+- [ ] EPIC 4: Dashboard & Analytics

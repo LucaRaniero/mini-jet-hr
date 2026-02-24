@@ -114,6 +114,63 @@ def create_onboarding_steps_for_employee(employee):
 3. bulk_create bypasses signals: key limitation vs SQL triggers
 
 **Next steps:**
-- [ ] EPIC 3 Phase 3: Email di benvenuto (console backend in dev)
+- [x] EPIC 3 Phase 3: Email di benvenuto — done in Session 12
+- [ ] EPIC 3 Phase 4: Celery + async tasks
+- [ ] EPIC 4: Dashboard & Analytics
+
+---
+
+## Session 12 (2026-02-24) - Welcome Email (EPIC 3 Phase 3)
+
+**Focus**: Django email system, Strategy Pattern, mail.outbox testing
+
+**What I built:**
+- settings.py: EMAIL_BACKEND (console in dev) + DEFAULT_FROM_EMAIL via django-environ
+- services.py: send_welcome_email() — plain text email with employee data
+- signals.py: extended post_save to call send_welcome_email after onboarding steps
+- .env.example: documented email environment variables
+- 9 new email tests (content, recipient, from, update/soft-delete guards, API e2e)
+- Total: 147 tests (65 backend + 82 frontend)
+
+**What I learned:**
+- Django Email Backend = Strategy Pattern: stessa send_mail(), backend diverso per ambiente
+  - console → stdout (Docker logs), locmem → mail.outbox (test), smtp → reale (prod)
+- send_mail(): equivale a SQL Server sp_send_dbmail — subject, body, from, recipients
+- get_role_display(): metodo auto-generato per campi con choices (come JOIN a lookup table)
+- mail.outbox: lista Python di email inviate in test (come tabella dbo.email_log)
+  - Django TestCase auto-sostituisce il backend con locmem e svuota outbox tra i test
+- mail.outbox.clear(): reset manuale DENTRO lo stesso test quando serve testare post-creazione
+- fail_silently=False: errori espliciti — in produzione useremmo Celery con retry
+
+**Bug scoperto e risolto:**
+- hire_date arriva come stringa nel signal quando si usa `create(hire_date="2024-01-15")`
+- Django `__init__` assegna il valore raw, la conversione str→date avviene solo nel DB adapter
+- Il signal post_save riceve l'istanza in-memoria (con stringa), non quella dal DB (con date)
+- Fix: `isinstance(hire_date, str)` guard + `date.fromisoformat()` conversion
+
+**Key pattern: Django Email Backend = Strategy Pattern:**
+| Ambiente | EMAIL_BACKEND | Effetto |
+|----------|--------------|---------|
+| Dev | console.EmailBackend | Stampa su stdout (Docker logs) |
+| Test | locmem.EmailBackend (auto) | Popola mail.outbox (lista Python) |
+| Prod | smtp.EmailBackend | Invia via server SMTP reale |
+
+**Key pattern: mail.outbox = dbo.email_log:**
+```python
+# Test: "verifica che l'email sia stata inviata"
+from django.core import mail
+
+Employee.objects.create(...)        # Signal → send_mail() → outbox
+self.assertEqual(len(mail.outbox), 1)                    # COUNT(*)
+self.assertEqual(mail.outbox[0].to, ["mario@example.com"])  # SELECT [to]
+self.assertIn("Mario", mail.outbox[0].subject)           # WHERE subject LIKE '%Mario%'
+```
+
+**Comprehension check answers:**
+1. Ordine nel signal: prima onboarding steps, poi email — l'email dice "checklist avviata" (deve essere vero), e se l'email fallisce gli step esistono comunque
+2. mail.outbox.clear(): serve perché Employee.objects.create() nel test invia l'email di creazione — senza clear, l'assert `len(outbox) == 0` dopo update fallirebbe con 1 (l'email della creazione)
+3. hire_date stringa nel signal: Django `__init__` non converte i tipi, il DB adapter lo fa. Il signal riceve l'istanza in-memoria con il valore originale passato a create()
+
+**Next steps:**
 - [ ] EPIC 3 Phase 4: Celery + async tasks
 - [ ] EPIC 4: Dashboard & Analytics

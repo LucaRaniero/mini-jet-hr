@@ -126,7 +126,7 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 3: Automazione Onboarding
 *Obiettivo learning: Business logic, async tasks, email*
 
-### US-007: Processo onboarding automatico (partially done — signals complete)
+### US-007: Processo onboarding automatico (partially done — signals + email complete)
 **Come** sistema
 **Voglio** automatizzare l'onboarding di nuovi dipendenti
 **Così che** HR risparmi tempo e non dimentichi passaggi
@@ -134,7 +134,7 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 **Acceptance Criteria:**
 - [x] Trigger: creazione nuovo dipendente (Django post_save signal)
 - [ ] Azioni automatiche:
-  - [ ] Invio email di benvenuto
+  - [x] Invio email di benvenuto (console backend in dev, SMTP in prod)
   - [x] Creazione checklist onboarding (auto via signal + service layer)
   - [ ] Generazione badge ID (PDF)
   - [ ] Notifica al manager del dipendente
