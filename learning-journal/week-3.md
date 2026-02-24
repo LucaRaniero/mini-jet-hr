@@ -115,7 +115,7 @@ def create_onboarding_steps_for_employee(employee):
 
 **Next steps:**
 - [x] EPIC 3 Phase 3: Email di benvenuto — done in Session 12
-- [ ] EPIC 3 Phase 4: Celery + async tasks
+- [x] EPIC 3 Phase 4: Celery + async tasks — done in Session 13
 - [ ] EPIC 4: Dashboard & Analytics
 
 ---
@@ -172,5 +172,75 @@ self.assertIn("Mario", mail.outbox[0].subject)           # WHERE subject LIKE '%
 3. hire_date stringa nel signal: Django `__init__` non converte i tipi, il DB adapter lo fa. Il signal riceve l'istanza in-memoria con il valore originale passato a create()
 
 **Next steps:**
-- [ ] EPIC 3 Phase 4: Celery + async tasks
+- [x] EPIC 3 Phase 4: Celery + async tasks — done in Session 13
+- [ ] EPIC 4: Dashboard & Analytics
+
+---
+
+## Session 13 (2026-02-24) - Celery + Async Tasks (EPIC 3 Phase 4)
+
+**Focus**: Celery task queue, Redis broker, async email, retry logic, test isolation
+
+**What I built:**
+- docker-compose.yml: 2 nuovi servizi (Redis 7 Alpine + Celery worker)
+- minijet/celery.py: Celery app config con autodiscover_tasks()
+- minijet/__init__.py: import celery app all'avvio Django
+- settings.py: CELERY_BROKER_URL, CELERY_RESULT_BACKEND, JSON serialization
+- employees/tasks.py: send_welcome_email_task (shared_task, bind, retry)
+- employees/signals.py: refactoring da chiamata sincrona a .delay(pk)
+- conftest.py: CELERY_TASK_ALWAYS_EAGER fixture (autouse)
+- 5 nuovi test Celery (task diretto, retry, PK inesistente, signal mock)
+- Total: 152 tests (70 backend + 82 frontend)
+
+**What I learned:**
+- Celery = distributed task queue, equivalente di SQL Agent
+  - Producer (Django): mette task in coda con .delay()
+  - Broker (Redis): coda messaggi (come Service Broker queue)
+  - Worker (celery worker): processo separato che esegue i task
+- Redis: key-value store in-memory, NON un DB vettoriale — velocissimo per code messaggi
+- shared_task: registra funzione come task senza import diretto dell'app Celery
+- bind=True: dà accesso a self per self.retry() (come SP che richiama sé stessa)
+- .delay(pk): fire-and-forget — accoda su Redis e torna subito
+- Serializzazione JSON: i task ricevono PK (int), non oggetti Python (non serializzabili)
+- Lazy imports in tasks.py: Django potrebbe non essere completamente caricato all'avvio del worker
+- max_retries=3 + default_retry_delay=60: retry automatico su errori transienti (SMTP timeout)
+- CELERY_TASK_ALWAYS_EAGER: esegue task inline (sincrono) nei test, senza Redis
+- conftest.py con autouse=True: fixture globale che si applica a tutti i test automaticamente
+- unittest.mock.patch: sostituire oggetti con mock per testare in isolamento
+
+**Key pattern: Celery ≈ SQL Agent:**
+```
+-- SQL Agent: schedula job e torna subito
+EXEC sp_start_job @job_name = 'SendWelcomeEmail', @step_name = 'Step1'
+
+-- Celery: accoda task e torna subito
+send_welcome_email_task.delay(employee_id)  # → Redis → Worker
+```
+
+**Key pattern: Task = thin wrapper around service function:**
+```python
+# tasks.py — riceve PK, carica oggetto, chiama service
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_welcome_email_task(self, employee_id):
+    from .models import Employee       # Lazy import
+    from .services import send_welcome_email
+    employee = Employee.objects.get(pk=employee_id)  # SELECT
+    try:
+        send_welcome_email(employee)   # Chiama la business logic
+    except Exception as exc:
+        raise self.retry(exc=exc)      # Retry su errore
+```
+
+**Key pattern: CELERY_TASK_ALWAYS_EAGER = inline execution:**
+| Modalità | Flusso | Uso |
+|---|---|---|
+| Normale (prod/dev) | .delay() → Redis → Worker → esecuzione | Runtime |
+| Eager (test) | .delay() → esecuzione immediata inline | Test (no Redis) |
+
+**Comprehension check answers:**
+1. PK non oggetto: Celery serializza in JSON per metterlo in Redis. Un integer è JSON-serializzabile, un oggetto Employee no (TypeError)
+2. Lazy imports: all'avvio del worker, Celery carica tasks.py ma Django potrebbe non aver finito di registrare tutti i modelli. Import dentro la funzione garantisce che Django sia pronto
+3. CELERY_TASK_ALWAYS_EAGER: esegue il task inline nel processo chiamante, come una chiamata a funzione normale. Redis non serve, mail.outbox funziona
+
+**Next steps:**
 - [ ] EPIC 4: Dashboard & Analytics

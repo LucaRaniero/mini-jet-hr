@@ -309,6 +309,30 @@
 - `fail_silently=False`: explicit errors vs silent swallowing (like RAISERROR vs TRY/CATCH with no re-throw)
 - `mail.outbox.clear()`: manual reset within same test when testing post-creation behavior
 
+### EPIC 3 Phase 4: Celery + Async Tasks (done)
+- [x] Docker: Redis 7 Alpine service + Celery worker service (5 services total)
+- [x] Celery app config: `celery.py` with autodiscover + `__init__.py` import
+- [x] Django settings: `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, JSON serialization
+- [x] Task: `send_welcome_email_task` with `shared_task`, `bind=True`, `max_retries=3`
+- [x] Signal refactored: onboarding steps sync, email async via `.delay(pk)`
+- [x] Test config: `conftest.py` with `CELERY_TASK_ALWAYS_EAGER=True` fixture
+- [x] Tests: 5 new Celery tests (task execution, retry, nonexistent PK, signal mock)
+- [x] Total backend tests: 70 (65 existing + 5 Celery)
+
+### Concepts mastered (EPIC 3 Phase 4):
+- Celery: distributed task queue — equivalent to SQL Agent (Producer/Broker/Worker)
+- Redis: in-memory key-value store used as message broker (like Service Broker queue)
+- `shared_task`: decorator that registers function as async task (like SP registered as Agent job step)
+- `bind=True`: gives task access to `self` for `self.retry()` (self-referencing SP)
+- `.delay(pk)`: fire-and-forget — queues task on Redis and returns immediately
+- Pass PK not object: Celery serializes params as JSON, model instances aren't serializable
+- `max_retries` + `default_retry_delay`: automatic retry on transient failures (SMTP timeouts)
+- Lazy imports in tasks: prevent circular imports at worker startup (Django may not be fully loaded)
+- `CELERY_TASK_ALWAYS_EAGER`: execute tasks inline during tests (no Redis needed)
+- `CELERY_TASK_EAGER_PROPAGATES`: exceptions bubble up to caller in eager mode (for test debugging)
+- `conftest.py` with `autouse=True` fixture: applies settings to all tests automatically
+- `patch.object(task, "retry")`: mock retry method to test retry behavior without actually retrying
+- `autodiscover_tasks()`: scans INSTALLED_APPS for `tasks.py` modules (like Agent scanning for SPs)
+
 ### Next steps:
-- [ ] EPIC 3 Phase 4: Celery + async tasks
 - [ ] EPIC 4: Dashboard & Analytics

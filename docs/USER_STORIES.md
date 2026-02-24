@@ -126,7 +126,7 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 3: Automazione Onboarding
 *Obiettivo learning: Business logic, async tasks, email*
 
-### US-007: Processo onboarding automatico (partially done — signals + email complete)
+### US-007: Processo onboarding automatico (partially done — signals + email + Celery complete)
 **Come** sistema
 **Voglio** automatizzare l'onboarding di nuovi dipendenti
 **Così che** HR risparmi tempo e non dimentichi passaggi
@@ -141,9 +141,9 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 - [ ] Dashboard per monitorare stato onboarding
 
 **Technical Notes:**
-- Django signals per trigger
-- Celery per async tasks (o Huey più semplice)
-- Email backend (console per dev, SMTP per prod)
+- Django signals per trigger (post_save with created=True guard)
+- Celery per async tasks (Redis broker, shared_task, retry logic)
+- Email backend (console per dev, SMTP per prod, locmem per test)
 - PDF generation: ReportLab o WeasyPrint
 - Focus: Signals, async tasks, email templates, PDF generation
 

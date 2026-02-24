@@ -36,11 +36,17 @@ Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/)
 │  Frontend   │      │   (DRF)      │      │   Database  │
 └─────────────┘      └──────────────┘      └─────────────┘
                             │
-                            ▼
-                     ┌─────────────┐
-                     │   AWS S3    │
-                     │  (Storage)  │
-                     └─────────────┘
+                     ┌──────┴──────┐
+                     ▼             ▼
+              ┌─────────────┐ ┌─────────────┐
+              │   Redis 7   │ │   AWS S3    │
+              │  (Broker)   │ │  (Storage)  │
+              └──────┬──────┘ └─────────────┘
+                     ▼
+              ┌─────────────┐
+              │   Celery    │
+              │  (Worker)   │
+              └─────────────┘
 ```
 
 ## Features
@@ -53,13 +59,11 @@ Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/)
 - [x] Onboarding checklist (configurable templates, interactive checklist with progress bar)
 - [x] Onboarding automation: auto-create checklist via Django Signal on employee creation
 - [x] Welcome email: automatic email on employee creation (console backend in dev, SMTP-ready for prod)
+- [x] Celery async tasks: welcome email via Redis broker + Celery worker (retry logic, 3 attempts)
 - [x] Vue Router with 10 routes (3 employee + 3 contract + 3 onboarding template + 1 checklist)
-- [x] Docker containerization (PostgreSQL + Django + Vue)
+- [x] Docker containerization (PostgreSQL + Redis + Django + Celery Worker + Vue)
 - [x] API documentation with drf-spectacular (Swagger UI + ReDoc)
-- [x] 147 automated tests (65 backend + 82 frontend)
-
-### In Progress
-- [ ] Onboarding automation (Celery async tasks — signals + email done)
+- [x] 152 automated tests (70 backend + 82 frontend)
 
 ### Planned
 - [ ] Authentication & role-based permissions
