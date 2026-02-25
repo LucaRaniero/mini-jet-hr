@@ -185,6 +185,13 @@ export function startOnboarding(employeeId) {
   })
 }
 
+// ===================== Dashboard =====================
+
+// --- GET dashboard statistics (aggregated KPIs + chart data) ---
+export function fetchDashboardStats() {
+  return fetchAPI('/dashboard/stats/')
+}
+
 // --- PATCH toggle completamento step ---
 export function updateOnboardingStep(employeeId, stepId, payload) {
   if (!employeeId) throw new Error('Employee ID is required')

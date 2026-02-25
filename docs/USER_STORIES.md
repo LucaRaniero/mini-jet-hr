@@ -174,7 +174,7 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 4: Dashboard e Analytics
 *Obiettivo learning: Aggregazioni, charts, caching*
 
-### US-009: Dashboard HR overview (Phase 1 done — API aggregations)
+### US-009: Dashboard HR overview (Phase 2 done — API + Frontend charts)
 **Come** responsabile HR
 **Voglio** una dashboard con KPI principali
 **Così che** possa monitorare lo stato del personale
@@ -186,14 +186,14 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
   - Contratti in scadenza
   - Onboarding in corso
 - [x] Dati grafici (API backend): crescita headcount, distribuzione per dipartimento
-- [ ] Frontend: KPI cards + grafici con Chart.js (Phase 2)
+- [x] Frontend: KPI cards + grafici con Chart.js (Phase 2)
 - [ ] Caching: Django cache framework con Redis (Phase 3)
 - [ ] Refresh dati ogni 5 minuti (Phase 4)
 
 **Technical Notes:**
 - API endpoint: GET /api/dashboard/stats/ (DashboardView — APIView, not ViewSet)
 - Backend: aggregate() + annotate() + TruncMonth + Count with Q filters
-- Chart library: Chart.js (to be added in Phase 2)
+- Chart library: Chart.js + vue-chartjs (Line chart + Doughnut chart)
 - Caching: Django cache framework with Redis backend (Phase 3)
 - Focus: Aggregations (Count, Q), query optimization, TruncMonth, charts in Vue, caching
 

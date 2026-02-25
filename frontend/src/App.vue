@@ -11,6 +11,12 @@ import { RouterView, RouterLink } from 'vue-router'
         </RouterLink>
         <nav class="flex items-center gap-4">
           <RouterLink
+            to="/dashboard"
+            class="text-sm text-gray-600 hover:text-blue-600"
+          >
+            Dashboard
+          </RouterLink>
+          <RouterLink
             to="/onboarding/templates"
             class="text-sm text-gray-600 hover:text-blue-600"
           >

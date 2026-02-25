@@ -305,6 +305,70 @@ SELECT department, COUNT(*) AS count FROM employees GROUP BY department;
 3. APIView non ViewSet: perché è solo lettura e non c'è un modello Dashboard — è una query aggregata su più tabelle
 
 **Next steps:**
-- [ ] EPIC 4 Phase 2: Frontend Dashboard + Chart.js (KPI cards, line chart, pie/bar chart)
+- [x] EPIC 4 Phase 2: Frontend Dashboard + Chart.js — done in Session 15
 - [ ] EPIC 4 Phase 3: Django Cache Framework (Redis cache backend, TTL)
 - [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling, onUnmounted cleanup)
+
+---
+
+## Session 15 (2026-02-25) - Frontend Dashboard with Chart.js (EPIC 4 Phase 2)
+
+**Focus**: Chart.js integration, vue-chartjs wrapper, KPI cards, data visualization
+
+**What I built:**
+- DashboardPanel.vue: full dashboard page with 4 KPI cards + 2 charts
+- Line chart: headcount trend over time (monthly new hires)
+- Doughnut chart: department distribution (proportional slices)
+- fetchDashboardStats() in api.js (simple GET, uses fetchAPI not apiRequest)
+- Route /dashboard + nav link in App.vue
+- 9 new tests: loading, error, KPI values, chart data props, empty state fallbacks
+- Total: 170 tests (79 backend + 91 frontend)
+
+**What I learned:**
+- Chart.js tree-shaking: register only needed components (CategoryScale, LineElement, etc.) vs registerables (SELECT cols vs SELECT *)
+- vue-chartjs: wraps Chart.js as Vue components — `<Line :data="..." :options="..." />`
+- Chart.js data structure: `{ labels: [...], datasets: [{ data: [...] }] }` — labels = GROUP BY col, data = aggregated values
+- computed() for chart data: reactive recalculation when stats change (like a VIEW that auto-refreshes)
+- Mock strategy for canvas-based components: stub Line/Doughnut, verify props (test the query params, not the engine)
+- vue/multi-word-component-names: ESLint rule requiring multi-word names (avoid HTML tag conflicts)
+- ES2019 `catch { }`: catch without variable when you don't need the error object
+
+**Key pattern: Chart.js data = SQL result set:**
+```
+-- SQL result set
+SELECT month, COUNT(*) FROM employees GROUP BY month
+→ [('2025-01', 5), ('2025-02', 3)]
+
+-- Chart.js equivalent
+{
+  labels: ['2025-01', '2025-02'],       // GROUP BY column
+  datasets: [{ data: [5, 3] }]          // aggregated values
+}
+```
+
+**Key pattern: Chart.js registration (tree-shaking):**
+```js
+// Like SELECT * — loads everything (~60KB)
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
+
+// Like SELECT col1, col2 — loads only what you use
+import { Chart, CategoryScale, LineElement, ... } from 'chart.js'
+Chart.register(CategoryScale, LineElement, ...)
+```
+
+**Key pattern: Testing canvas components:**
+```js
+// Can't test canvas rendering in unit tests (no browser engine)
+// → Mock the component, verify the data passed to it
+vi.mock('vue-chartjs', () => ({
+  Line: { props: ['data', 'options'], template: '<div />' },
+}))
+
+// Then assert on props (like verifying SP parameters, not execution)
+expect(lineChart.props('data').labels).toEqual(['2025-10', '2025-11'])
+```
+
+**Next steps:**
+- [ ] EPIC 4 Phase 3: Django Cache Framework (Redis cache backend, cache_page decorator)
+- [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling every 5 min, onUnmounted cleanup)

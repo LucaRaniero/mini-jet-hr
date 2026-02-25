@@ -9,12 +9,18 @@ import OnboardingTemplateListView from '@/views/OnboardingTemplateListView.vue'
 import OnboardingTemplateCreateView from '@/views/OnboardingTemplateCreateView.vue'
 import OnboardingTemplateEditView from '@/views/OnboardingTemplateEditView.vue'
 import OnboardingChecklistView from '@/views/OnboardingChecklistView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 
 const routes = [
   {
     path: '/',
     name: 'employee-list',
     component: EmployeeListView,
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: DashboardView,
   },
   {
     path: '/employees/new',

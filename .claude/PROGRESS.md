@@ -356,7 +356,25 @@
 - `.distinct().count()`: COUNT DISTINCT for unique employee count with pending onboarding
 - `strftime("%Y-%m")`: format date objects for JSON serialization (dates aren't JSON-native)
 
+### EPIC 4 Phase 2: Frontend Dashboard + Chart.js (done)
+- [x] `chart.js` + `vue-chartjs` dependencies installed
+- [x] `fetchDashboardStats()` in api.js (simple GET via `fetchAPI`)
+- [x] `DashboardPanel.vue`: 4 KPI cards (active, new hires, expiring, onboarding)
+- [x] Line chart: headcount trend over time (monthly new hires)
+- [x] Doughnut chart: department distribution (proportional slices)
+- [x] Route `/dashboard` + nav link in App.vue (11 routes total)
+- [x] Tests: 9 new (loading, error, KPI values, chart data props, empty states)
+- [x] Total frontend tests: 91 (82 existing + 9 dashboard)
+
+### Concepts mastered (EPIC 4 Phase 2):
+- Chart.js tree-shaking: register only needed components vs `registerables` (SELECT cols vs SELECT *)
+- `vue-chartjs`: wraps Chart.js as Vue components — `<Line :data :options />`
+- Chart.js data structure: `{ labels, datasets }` — labels = GROUP BY column, datasets = aggregated values
+- `computed()` for chart data: reactive recalculation when API data changes (like auto-refreshing VIEW)
+- Mock strategy for canvas components: stub Line/Doughnut, verify props (test params, not engine)
+- `vue/multi-word-component-names`: ESLint rule to avoid HTML tag conflicts (Dashboard → DashboardPanel)
+- ES2019 `catch { }`: catch without variable when error object isn't needed
+
 ### Next steps:
-- [ ] EPIC 4 Phase 2: Frontend Dashboard + Chart.js (KPI cards, line chart, pie/bar chart)
 - [ ] EPIC 4 Phase 3: Django Cache Framework (Redis cache backend, cache_page decorator)
 - [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling every 5 min, onUnmounted cleanup)
