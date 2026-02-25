@@ -911,6 +911,303 @@ class WelcomeEmailTest(TestCase):
         self.assertEqual(mail.outbox[0].to, ["mario.rossi@example.com"])
 
 
+class DashboardAPITest(TestCase):
+    """Tests for GET /api/dashboard/stats/ endpoint (US-009).
+
+    This endpoint aggregates data across multiple tables — like a SQL
+    reporting view. Each test creates controlled data and verifies
+    a specific metric in the response.
+
+    SQL analogy: testing a stored procedure that returns a result set
+    from multiple JOINs and GROUP BYs.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.url = "/api/dashboard/stats/"
+
+    def test_dashboard_returns_200(self):
+        """GET /api/dashboard/stats/ should return HTTP 200."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_dashboard_response_structure(self):
+        """Response should contain all expected top-level keys."""
+        response = self.client.get(self.url)
+        data = response.data
+        self.assertIn("employees", data)
+        self.assertIn("contracts", data)
+        self.assertIn("onboarding", data)
+        self.assertIn("charts", data)
+        self.assertIn("headcount_trend", data["charts"])
+        self.assertIn("department_distribution", data["charts"])
+
+    def test_empty_state_returns_zeroes(self):
+        """With no data, all counts should be zero and chart arrays empty."""
+        response = self.client.get(self.url)
+        data = response.data
+        self.assertEqual(data["employees"]["active"], 0)
+        self.assertEqual(data["employees"]["inactive"], 0)
+        self.assertEqual(data["employees"]["new_hires"], 0)
+        self.assertEqual(data["contracts"]["expiring"], 0)
+        self.assertEqual(data["onboarding"]["in_progress"], 0)
+        self.assertEqual(data["charts"]["headcount_trend"], [])
+        self.assertEqual(data["charts"]["department_distribution"], [])
+
+    def test_employee_active_inactive_counts(self):
+        """Should count active and inactive employees separately.
+
+        SQL: SELECT COUNT(*) FILTER (WHERE is_active = TRUE/FALSE) FROM employees
+        """
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario@example.com",
+            hire_date="2024-01-15",
+        )
+        Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna@example.com",
+            hire_date="2024-06-01",
+        )
+        Employee.objects.create(
+            first_name="Luigi",
+            last_name="Verdi",
+            email="luigi@example.com",
+            hire_date="2023-01-01",
+            is_active=False,
+        )
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["employees"]["active"], 2)
+        self.assertEqual(response.data["employees"]["inactive"], 1)
+
+    def test_new_hires_this_month(self):
+        """Should count only active employees hired this month.
+
+        SQL: COUNT(*) FILTER (WHERE hire_date >= DATE_TRUNC('month', NOW()))
+        """
+        today = date.today()
+        first_of_month = today.replace(day=1)
+
+        # Hired this month → counts as new hire
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario@example.com",
+            hire_date=first_of_month,
+        )
+        # Hired last month → does NOT count
+        last_month = first_of_month - timedelta(days=1)
+        Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna@example.com",
+            hire_date=last_month,
+        )
+        # Hired this month but inactive → does NOT count
+        Employee.objects.create(
+            first_name="Luigi",
+            last_name="Verdi",
+            email="luigi@example.com",
+            hire_date=first_of_month,
+            is_active=False,
+        )
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["employees"]["new_hires"], 1)
+
+    def test_expiring_contracts(self):
+        """Should count contracts with end_date within next 30 days.
+
+        SQL: COUNT(*) WHERE end_date BETWEEN NOW() AND NOW() + 30
+        """
+        today = date.today()
+        emp = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario@example.com",
+            hire_date="2024-01-15",
+        )
+        # Expiring in 15 days → counts
+        Contract.objects.create(
+            employee=emp,
+            contract_type="determinato",
+            ccnl="metalmeccanico",
+            ral="30000.00",
+            start_date="2024-01-01",
+            end_date=today + timedelta(days=15),
+        )
+        # Expiring in 90 days → does NOT count
+        Contract.objects.create(
+            employee=emp,
+            contract_type="determinato",
+            ccnl="commercio",
+            ral="28000.00",
+            start_date="2024-01-01",
+            end_date=today + timedelta(days=90),
+        )
+        # Already expired → does NOT count
+        Contract.objects.create(
+            employee=emp,
+            contract_type="determinato",
+            ccnl="metalmeccanico",
+            ral="25000.00",
+            start_date="2023-01-01",
+            end_date=today - timedelta(days=10),
+        )
+        # No end_date (indeterminato) → does NOT count
+        Contract.objects.create(
+            employee=emp,
+            contract_type="indeterminato",
+            ccnl="metalmeccanico",
+            ral="40000.00",
+            start_date="2024-01-01",
+        )
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["contracts"]["expiring"], 1)
+
+    def test_onboarding_in_progress(self):
+        """Should count employees with at least one incomplete onboarding step.
+
+        SQL: SELECT COUNT(DISTINCT employee_id)
+             FROM onboarding_steps WHERE is_completed = FALSE
+        """
+        t1 = OnboardingTemplate.objects.create(name="Task 1", order=1)
+        t2 = OnboardingTemplate.objects.create(name="Task 2", order=2)
+
+        # Employee A: has incomplete steps → counts
+        emp_a = Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario@example.com",
+            hire_date="2024-01-15",
+        )
+        # Signal auto-created steps; they are incomplete by default
+
+        # Employee B: all steps completed → does NOT count
+        emp_b = Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna@example.com",
+            hire_date="2024-06-01",
+        )
+        OnboardingStep.objects.filter(employee=emp_b).update(is_completed=True)
+
+        # Employee C: no onboarding steps at all → does NOT count
+        # (create employee with no active templates — deactivate them first, then create)
+        t1.is_active = False
+        t2.is_active = False
+        t1.save()
+        t2.save()
+        Employee.objects.create(
+            first_name="Luigi",
+            last_name="Verdi",
+            email="luigi@example.com",
+            hire_date="2024-03-01",
+        )
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["onboarding"]["in_progress"], 1)
+
+    def test_headcount_trend_groups_by_month(self):
+        """Should group active employees by hire month.
+
+        SQL: SELECT DATE_TRUNC('month', hire_date) AS month, COUNT(*)
+             FROM employees WHERE is_active = TRUE
+             GROUP BY month ORDER BY month
+        """
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario@example.com",
+            hire_date="2024-01-15",
+        )
+        Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna@example.com",
+            hire_date="2024-01-20",
+        )
+        Employee.objects.create(
+            first_name="Luigi",
+            last_name="Verdi",
+            email="luigi@example.com",
+            hire_date="2024-03-01",
+        )
+        # Inactive employee → should NOT appear in trend
+        Employee.objects.create(
+            first_name="Sara",
+            last_name="Neri",
+            email="sara@example.com",
+            hire_date="2024-03-15",
+            is_active=False,
+        )
+
+        response = self.client.get(self.url)
+        trend = response.data["charts"]["headcount_trend"]
+
+        # Two groups: Jan 2024 (2 employees) and Mar 2024 (1 active)
+        self.assertEqual(len(trend), 2)
+        self.assertEqual(trend[0], {"month": "2024-01", "count": 2})
+        self.assertEqual(trend[1], {"month": "2024-03", "count": 1})
+
+    def test_department_distribution(self):
+        """Should group active employees by department, excluding blanks.
+
+        SQL: SELECT department, COUNT(*)
+             FROM employees WHERE is_active = TRUE AND department != ''
+             GROUP BY department ORDER BY count DESC
+        """
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario@example.com",
+            hire_date="2024-01-15",
+            department="Engineering",
+        )
+        Employee.objects.create(
+            first_name="Anna",
+            last_name="Bianchi",
+            email="anna@example.com",
+            hire_date="2024-06-01",
+            department="Engineering",
+        )
+        Employee.objects.create(
+            first_name="Luigi",
+            last_name="Verdi",
+            email="luigi@example.com",
+            hire_date="2024-03-01",
+            department="HR",
+        )
+        # No department → excluded
+        Employee.objects.create(
+            first_name="Sara",
+            last_name="Neri",
+            email="sara@example.com",
+            hire_date="2024-04-01",
+        )
+        # Inactive → excluded
+        Employee.objects.create(
+            first_name="Paolo",
+            last_name="Blu",
+            email="paolo@example.com",
+            hire_date="2024-05-01",
+            department="Engineering",
+            is_active=False,
+        )
+
+        response = self.client.get(self.url)
+        dist = response.data["charts"]["department_distribution"]
+
+        # Engineering=2, HR=1, ordered by count DESC
+        self.assertEqual(len(dist), 2)
+        self.assertEqual(dist[0], {"department": "Engineering", "count": 2})
+        self.assertEqual(dist[1], {"department": "HR", "count": 1})
+
+
 class CeleryTaskTest(TestCase):
     """Tests for Celery async tasks (EPIC 3 Phase 4).
 

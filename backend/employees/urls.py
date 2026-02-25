@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ContractViewSet,
+    DashboardView,
     EmployeeViewSet,
     OnboardingStepViewSet,
     OnboardingTemplateViewSet,
@@ -26,6 +27,9 @@ onboarding_detail = OnboardingStepViewSet.as_view({"patch": "partial_update"})
 
 urlpatterns = [
     path("", include(router.urls)),
+    # Dashboard: read-only aggregated stats (APIView, not ViewSet)
+    # SQL analogy: SELECT from a reporting view, no CRUD needed
+    path("dashboard/stats/", DashboardView.as_view(), name="dashboard-stats"),
     path(
         "employees/<int:employee_pk>/contracts/",
         contract_list,

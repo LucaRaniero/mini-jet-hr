@@ -1,8 +1,13 @@
+from datetime import timedelta
+
+from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Contract, Employee, OnboardingStep, OnboardingTemplate
 from .serializers import (
@@ -157,3 +162,92 @@ class OnboardingStepViewSet(viewsets.ModelViewSet):
                 serializer.save(completed_at=None)
         else:
             serializer.save()
+
+
+class DashboardView(APIView):
+    """Aggregated HR dashboard statistics.
+
+    Unlike ViewSets (CRUD on a single model), this is a read-only endpoint
+    that aggregates data across multiple tables — like a SQL reporting view.
+
+    SQL equivalent:
+        CREATE VIEW vw_dashboard_stats AS
+        SELECT ... FROM employees
+        CROSS JOIN (SELECT ... FROM contracts) c
+        CROSS JOIN (SELECT ... FROM onboarding_steps) o;
+    """
+
+    def get(self, request):
+        today = timezone.now().date()
+        first_day_of_month = today.replace(day=1)
+
+        # --- Employee stats ---
+        # SQL: SELECT COUNT(*) FILTER (WHERE ...) FROM employees
+        employee_stats = Employee.objects.aggregate(
+            active=Count("id", filter=Q(is_active=True)),
+            inactive=Count("id", filter=Q(is_active=False)),
+            new_hires=Count(
+                "id",
+                filter=Q(is_active=True, hire_date__gte=first_day_of_month),
+            ),
+        )
+
+        # --- Contract stats ---
+        # SQL: SELECT COUNT(*) FROM contracts
+        #      WHERE end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30
+        contract_stats = Contract.objects.aggregate(
+            expiring=Count(
+                "id",
+                filter=Q(
+                    end_date__gte=today,
+                    end_date__lte=today + timedelta(days=30),
+                ),
+            ),
+        )
+
+        # --- Onboarding stats ---
+        # SQL: SELECT COUNT(DISTINCT employee_id)
+        #      FROM onboarding_steps WHERE is_completed = FALSE
+        onboarding_in_progress = OnboardingStep.objects.filter(is_completed=False).values("employee").distinct().count()
+
+        # --- Headcount trend (GROUP BY month) ---
+        # SQL: SELECT DATE_TRUNC('month', hire_date) AS month, COUNT(*)
+        #      FROM employees WHERE is_active = TRUE
+        #      GROUP BY month ORDER BY month
+        headcount_trend = (
+            Employee.objects.filter(is_active=True)
+            .annotate(month=TruncMonth("hire_date"))
+            .values("month")
+            .annotate(count=Count("id"))
+            .order_by("month")
+        )
+
+        # --- Department distribution (GROUP BY department) ---
+        # SQL: SELECT department, COUNT(*)
+        #      FROM employees WHERE is_active = TRUE AND department != ''
+        #      GROUP BY department ORDER BY count DESC
+        department_distribution = (
+            Employee.objects.filter(is_active=True)
+            .exclude(department="")
+            .values("department")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+        )
+
+        return Response(
+            {
+                "employees": employee_stats,
+                "contracts": contract_stats,
+                "onboarding": {"in_progress": onboarding_in_progress},
+                "charts": {
+                    "headcount_trend": [
+                        {
+                            "month": entry["month"].strftime("%Y-%m"),
+                            "count": entry["count"],
+                        }
+                        for entry in headcount_trend
+                    ],
+                    "department_distribution": list(department_distribution),
+                },
+            }
+        )

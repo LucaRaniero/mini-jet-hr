@@ -334,5 +334,29 @@
 - `patch.object(task, "retry")`: mock retry method to test retry behavior without actually retrying
 - `autodiscover_tasks()`: scans INSTALLED_APPS for `tasks.py` modules (like Agent scanning for SPs)
 
+### EPIC 4 Phase 1: Dashboard API — Aggregated Stats (done)
+- [x] `DashboardView` (APIView): read-only endpoint aggregating data from 3 tables
+- [x] Employee stats: active, inactive, new_hires (conditional aggregation with `Count` + `Q`)
+- [x] Contract stats: expiring within 30 days (`Count` + `Q` with date range)
+- [x] Onboarding stats: in_progress count (distinct employees with incomplete steps)
+- [x] Headcount trend chart data: GROUP BY month using `TruncMonth` + `annotate`
+- [x] Department distribution chart data: GROUP BY department with `exclude("")`
+- [x] URL route: `GET /api/dashboard/stats/` (manual path, no Router)
+- [x] Tests: 9 new (structure, empty state, each metric, chart groupings)
+- [x] Total backend tests: 79 (70 existing + 9 dashboard)
+
+### Concepts mastered (EPIC 4 Phase 1):
+- `aggregate()`: collapses QuerySet into single dict — like `SELECT COUNT(*) FROM ...` without GROUP BY
+- `annotate()`: adds computed column per row/group — like `SELECT col, COUNT(*) GROUP BY col`
+- `Count("id", filter=Q(...))`: conditional aggregation — like `COUNT(*) FILTER (WHERE ...)`
+- `TruncMonth("hire_date")`: database function — translates to `DATE_TRUNC('month', hire_date)` in PostgreSQL
+- `values("col").annotate(count=Count("id"))`: GROUP BY pattern — `values()` defines grouping columns
+- `exclude(department="")`: negative filter — like `WHERE department != ''`
+- `APIView` vs `ViewSet`: custom read-only endpoint vs CRUD auto-generation from a model
+- `.distinct().count()`: COUNT DISTINCT for unique employee count with pending onboarding
+- `strftime("%Y-%m")`: format date objects for JSON serialization (dates aren't JSON-native)
+
 ### Next steps:
-- [ ] EPIC 4: Dashboard & Analytics
+- [ ] EPIC 4 Phase 2: Frontend Dashboard + Chart.js (KPI cards, line chart, pie/bar chart)
+- [ ] EPIC 4 Phase 3: Django Cache Framework (Redis cache backend, cache_page decorator)
+- [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling every 5 min, onUnmounted cleanup)

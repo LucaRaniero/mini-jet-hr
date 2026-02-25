@@ -243,4 +243,68 @@ def send_welcome_email_task(self, employee_id):
 3. CELERY_TASK_ALWAYS_EAGER: esegue il task inline nel processo chiamante, come una chiamata a funzione normale. Redis non serve, mail.outbox funziona
 
 **Next steps:**
-- [ ] EPIC 4: Dashboard & Analytics
+- [x] EPIC 4 Phase 1: Dashboard API — done in Session 14
+
+---
+
+## Session 14 (2026-02-25) - Dashboard API (EPIC 4 Phase 1)
+
+**Focus**: Django aggregations, ORM GROUP BY, APIView vs ViewSet
+
+**What I built:**
+- DashboardView (APIView): single read-only endpoint aggregating data from 3 tables
+- 5 aggregate queries: employee stats, contract expiration, onboarding progress, headcount trend, department distribution
+- URL route: GET /api/dashboard/stats/
+- 9 new tests covering every metric and edge case (empty state, active/inactive, boundary dates)
+- Total: 161 tests (79 backend + 82 frontend)
+
+**What I learned:**
+- aggregate() = SELECT COUNT(*) FROM ... senza GROUP BY → ritorna UN dizionario (una riga)
+- annotate() = SELECT col, COUNT(*) GROUP BY col → ritorna N righe (un QuerySet)
+- Count("id", filter=Q(...)): aggregazione condizionale → equivale a COUNT(*) FILTER (WHERE ...)
+- TruncMonth("hire_date"): database function → genera DATE_TRUNC('month', hire_date) in PostgreSQL
+- values("month").annotate(count=Count("id")): la catena per GROUP BY — values() definisce le colonne di raggruppamento
+- exclude(department=""): filtro negativo → WHERE department != ''
+- APIView vs ViewSet: endpoint custom read-only vs CRUD auto-generato da modello
+- pytest vs manage.py test: conftest.py con fixture autouse funziona solo con pytest (non Django test runner)
+
+**Key pattern: Django aggregations = SQL GROUP BY:**
+
+| SQL | Django ORM |
+|-----|-----------|
+| `SELECT COUNT(*) FROM employees` | `Employee.objects.aggregate(total=Count("id"))` |
+| `COUNT(*) FILTER (WHERE is_active)` | `Count("id", filter=Q(is_active=True))` |
+| `DATE_TRUNC('month', hire_date)` | `TruncMonth("hire_date")` |
+| `SELECT col, COUNT(*) GROUP BY col` | `.values("col").annotate(count=Count("id"))` |
+| `WHERE department != ''` | `.exclude(department="")` |
+
+**Key pattern: aggregate() vs annotate():**
+```
+-- aggregate(): UNA riga
+SELECT COUNT(*) AS total FROM employees;
+→ Employee.objects.aggregate(total=Count("id"))
+→ {'total': 42}
+
+-- annotate(): N righe
+SELECT department, COUNT(*) AS count FROM employees GROUP BY department;
+→ Employee.objects.values("department").annotate(count=Count("id"))
+→ QuerySet [{'department': 'Engineering', 'count': 15}, ...]
+```
+
+**Key pattern: APIView vs ViewSet:**
+| | APIView | ViewSet |
+|---|---------|---------|
+| SQL equivalente | SP custom per report | CRUD auto-generate |
+| Metodi | Solo quelli definiti (GET) | list, create, retrieve, update, destroy |
+| Router | No (path manuale) | Sì (DefaultRouter) |
+| Uso | Query aggregate, endpoint speciali | CRUD su un modello |
+
+**Comprehension check answers:**
+1. aggregate() non annotate() per employee stats: perché ci aspettiamo UN singolo dizionario (una riga totale), non una riga per ogni record
+2. values("month") prima di annotate(): definisce la colonna del GROUP BY, esattamente come in SQL devi dichiarare GROUP BY prima di COUNT(*)
+3. APIView non ViewSet: perché è solo lettura e non c'è un modello Dashboard — è una query aggregata su più tabelle
+
+**Next steps:**
+- [ ] EPIC 4 Phase 2: Frontend Dashboard + Chart.js (KPI cards, line chart, pie/bar chart)
+- [ ] EPIC 4 Phase 3: Django Cache Framework (Redis cache backend, TTL)
+- [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling, onUnmounted cleanup)
