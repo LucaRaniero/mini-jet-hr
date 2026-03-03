@@ -175,3 +175,22 @@ EMAIL_BACKEND = env(
     default="django.core.mail.backends.console.EmailBackend",
 )
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="hr@minijethr.local")
+
+# Cache — Django cache framework con Redis.
+# Come Celery (DB 0) usa Redis per la coda dei task,
+# la cache (DB 1) usa Redis come staging table: dati pre-calcolati
+# che evitano di rieseguire 5+ query DB a ogni request.
+#
+# Django 4.0+ ha RedisCache built-in: nessun package aggiuntivo
+# (il pacchetto `redis` è già in requirements.txt per Celery).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("CACHE_URL", default="redis://localhost:6379/1"),
+    }
+}
+
+# Dashboard cache TTL in secondi (default 5 minuti).
+# In produzione si può alzare; l'invalidazione signal-based
+# garantisce dati freschi quando cambiano.
+CACHE_DASHBOARD_TTL = env.int("CACHE_DASHBOARD_TTL", default=300)

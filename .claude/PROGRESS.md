@@ -375,6 +375,33 @@
 - `vue/multi-word-component-names`: ESLint rule to avoid HTML tag conflicts (Dashboard → DashboardPanel)
 - ES2019 `catch { }`: catch without variable when error object isn't needed
 
+### EPIC 4 Phase 3: Django Cache Framework — Low-level Cache API (done)
+- [x] Django settings: `CACHES` config (Redis DB 1, separate from Celery DB 0)
+- [x] `CACHE_DASHBOARD_TTL` configurable via env var (default 300s)
+- [x] DashboardView: `cache.get()` / `cache.set()` with TTL (low-level cache API)
+- [x] `DASHBOARD_CACHE_KEY` constant for cache key naming
+- [x] Signal-based invalidation: `invalidate_dashboard_cache()` on post_save/post_delete
+- [x] Connected to Employee (post_save), Contract (post_save + post_delete), OnboardingStep (post_save)
+- [x] Test fixture: `use_local_cache` autouse fixture (LocMemCache, no Redis dependency in tests)
+- [x] Tests: 6 new (cache hit, miss, invalidation x3, data integrity)
+- [x] Total backend tests: 85 (79 existing + 6 cache)
+- [x] Total frontend tests: 91 (unchanged)
+- [x] Total tests: 176
+
+### Concepts mastered (EPIC 4 Phase 3):
+- Django Cache Framework: application-level staging table — pre-calculated data avoids repeated DB queries
+- `cache.get(key)`: returns cached value or `None` — like `SELECT FROM staging_table WHERE key = ?`
+- `cache.set(key, data, ttl)`: stores data with TTL — like `INSERT INTO staging WITH EXPIRY`
+- `cache.delete(key)`: explicit invalidation — like `DELETE FROM staging WHERE key = ?`
+- `is not None` guard: distinguishes cache MISS (`None`) from cached falsy values (`0`, `{}`)
+- Redis DB isolation: DB 0 for Celery broker, DB 1 for cache (like separate schemas in SQL Server)
+- `RedisCache` built-in (Django 4.0+): no additional package needed (`redis` already in requirements)
+- Signal-based invalidation: post_save/post_delete triggers cache clear (like AFTER trigger → REFRESH MATERIALIZED VIEW)
+- `post_save.connect()` vs `@receiver`: imperative registration for multiple senders (no decorator per-model)
+- `LocMemCache` in tests: in-memory cache backend for test isolation (no Redis dependency)
+- `assertNumQueries(0)`: proves cache HIT — zero DB queries means data came entirely from cache
+- Constant duplication vs cross-import: duplicate string in views.py + signals.py avoids fragile import chains
+- `conftest.py` fixture pattern: autouse fixture overrides settings globally (like celery_eager_mode)
+
 ### Next steps:
-- [ ] EPIC 4 Phase 3: Django Cache Framework (Redis cache backend, cache_page decorator)
 - [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling every 5 min, onUnmounted cleanup)

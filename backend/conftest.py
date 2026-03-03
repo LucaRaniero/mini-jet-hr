@@ -24,3 +24,27 @@ def celery_eager_mode(settings):
     """
     settings.CELERY_TASK_ALWAYS_EAGER = True
     settings.CELERY_TASK_EAGER_PROPAGATES = True
+
+
+@pytest.fixture(autouse=True)
+def use_local_cache(settings):
+    """Usa LocMemCache nei test invece di Redis.
+
+    Stessa strategia di celery_eager_mode: nei test non vogliamo
+    dipendere da servizi esterni (Redis). LocMemCache è una cache
+    in-memoria che vive solo nel processo del test.
+
+    Equivale a: usare una temp table invece della staging table
+    di produzione quando fai testing delle stored procedure.
+
+    Il clear() garantisce isolamento: ogni test parte con cache vuota,
+    così un test non può "inquinare" il successivo con dati cachati.
+    """
+    settings.CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+    from django.core.cache import cache
+
+    cache.clear()

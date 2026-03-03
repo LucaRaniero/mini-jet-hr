@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from django.conf import settings as django_settings
+from django.core.cache import cache
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
@@ -8,6 +10,10 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+# Chiave cache per la dashboard — come il nome di una staging table.
+# Una sola chiave perché è un singolo endpoint aggregato.
+DASHBOARD_CACHE_KEY = "dashboard_stats"
 
 from .models import Contract, Employee, OnboardingStep, OnboardingTemplate
 from .serializers import (
@@ -178,6 +184,13 @@ class DashboardView(APIView):
     """
 
     def get(self, request):
+        # 1. Cache HIT → ritorna dati pre-calcolati (0 query DB).
+        # Come: SELECT * FROM staging_dashboard WHERE key = 'dashboard_stats'
+        cached_data = cache.get(DASHBOARD_CACHE_KEY)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        # 2. Cache MISS → esegui le 5+ query di aggregazione.
         today = timezone.now().date()
         first_day_of_month = today.replace(day=1)
 
@@ -234,20 +247,23 @@ class DashboardView(APIView):
             .order_by("-count")
         )
 
-        return Response(
-            {
-                "employees": employee_stats,
-                "contracts": contract_stats,
-                "onboarding": {"in_progress": onboarding_in_progress},
-                "charts": {
-                    "headcount_trend": [
-                        {
-                            "month": entry["month"].strftime("%Y-%m"),
-                            "count": entry["count"],
-                        }
-                        for entry in headcount_trend
-                    ],
-                    "department_distribution": list(department_distribution),
-                },
-            }
-        )
+        data = {
+            "employees": employee_stats,
+            "contracts": contract_stats,
+            "onboarding": {"in_progress": onboarding_in_progress},
+            "charts": {
+                "headcount_trend": [
+                    {
+                        "month": entry["month"].strftime("%Y-%m"),
+                        "count": entry["count"],
+                    }
+                    for entry in headcount_trend
+                ],
+                "department_distribution": list(department_distribution),
+            },
+        }
+
+        # 3. Salva in cache con TTL — come: INSERT INTO staging_dashboard ...
+        cache.set(DASHBOARD_CACHE_KEY, data, django_settings.CACHE_DASHBOARD_TTL)
+
+        return Response(data)

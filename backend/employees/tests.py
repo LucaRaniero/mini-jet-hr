@@ -4,13 +4,16 @@ from datetime import date, timedelta
 from unittest.mock import patch
 
 from django.core import mail
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from .models import Contract, Employee, OnboardingStep, OnboardingTemplate
 from .tasks import send_welcome_email_task
+from .views import DASHBOARD_CACHE_KEY
 
 # Directory temporanea per i media files nei test — evita di sporcare MEDIA_ROOT reale
 TEMP_MEDIA_ROOT = tempfile.mkdtemp()
@@ -1284,3 +1287,166 @@ class CeleryTaskTest(TestCase):
             employee.save()
 
             mock_task.delay.assert_not_called()
+
+
+class DashboardCacheTest(TestCase):
+    """Tests for dashboard cache (EPIC 4 Phase 3).
+
+    Verifica che la DashboardView usi la cache correttamente:
+    - Cache MISS: prima request → esegue query → salva in cache
+    - Cache HIT: seconda request → legge dalla cache → 0 query DB
+    - Invalidation: modifica dati → cache cancellata → prossima request ricalcola
+
+    SQL analogy: come testare che una materialized view venga usata
+    dal report e che il REFRESH avvenga dopo un INSERT/UPDATE/DELETE.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.url = "/api/dashboard/stats/"
+        # Pulisci cache prima di ogni test (isolamento)
+        cache.clear()
+
+    def test_first_request_populates_cache(self):
+        """Prima request = cache MISS: i dati vengono calcolati e salvati in cache.
+
+        SQL analogy: prima esecuzione → la staging table è vuota,
+        si eseguono le query e si fa INSERT INTO staging_table.
+        """
+        # Cache vuota all'inizio
+        self.assertIsNone(cache.get(DASHBOARD_CACHE_KEY))
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Dopo la request, i dati devono essere in cache
+        cached = cache.get(DASHBOARD_CACHE_KEY)
+        self.assertIsNotNone(cached)
+        self.assertIn("employees", cached)
+        self.assertIn("contracts", cached)
+        self.assertIn("onboarding", cached)
+        self.assertIn("charts", cached)
+
+    def test_second_request_uses_cache(self):
+        """Seconda request = cache HIT: 0 query DB, dati dalla cache.
+
+        SQL analogy: il report legge dalla staging table pre-calcolata
+        invece di rieseguire le 5 JOIN.
+
+        assertNumQueries(0) è la prova definitiva: se passa, significa
+        che Django non ha toccato il database → la cache funziona.
+        """
+        # Prima request: popola la cache
+        self.client.get(self.url)
+
+        # Seconda request: deve usare la cache (0 query DB)
+        with self.assertNumQueries(0):
+            response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("employees", response.data)
+
+    def test_cached_response_matches_fresh(self):
+        """I dati dalla cache devono essere identici a quelli freschi.
+
+        Verifica integrità: la serializzazione in cache non deve
+        alterare la struttura dei dati (come verificare che un
+        backup/restore di una tabella non perda righe).
+        """
+        # Crea dati di test
+        Employee.objects.create(
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.cache@example.com",
+            role="employee",
+            department="Engineering",
+            hire_date="2024-06-15",
+        )
+
+        # Prima request (cache miss) → dati freschi
+        response_fresh = self.client.get(self.url)
+        data_fresh = response_fresh.data
+
+        # Seconda request (cache hit) → dati dalla cache
+        response_cached = self.client.get(self.url)
+        data_cached = response_cached.data
+
+        # Devono essere identici
+        self.assertEqual(data_fresh, data_cached)
+
+    def test_cache_invalidated_on_employee_save(self):
+        """Creare/modificare un Employee deve invalidare la cache.
+
+        SQL analogy: AFTER INSERT/UPDATE trigger su employees →
+        REFRESH MATERIALIZED VIEW dashboard_stats.
+        """
+        # Popola cache
+        self.client.get(self.url)
+        self.assertIsNotNone(cache.get(DASHBOARD_CACHE_KEY))
+
+        # Crea un employee → signal invalida la cache
+        Employee.objects.create(
+            first_name="Anna",
+            last_name="Verdi",
+            email="anna.cache@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+
+        # Cache deve essere stata cancellata
+        self.assertIsNone(cache.get(DASHBOARD_CACHE_KEY))
+
+    def test_cache_invalidated_on_contract_save(self):
+        """Creare un Contract deve invalidare la cache.
+
+        La dashboard mostra contratti in scadenza — un nuovo contratto
+        potrebbe cambiare quel conteggio.
+        """
+        employee = Employee.objects.create(
+            first_name="Luca",
+            last_name="Bianchi",
+            email="luca.cache@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+
+        # Popola cache (dopo la creazione employee, che l'ha invalidata)
+        self.client.get(self.url)
+        self.assertIsNotNone(cache.get(DASHBOARD_CACHE_KEY))
+
+        # Crea contratto → signal invalida la cache
+        today = timezone.now().date()
+        Contract.objects.create(
+            employee=employee,
+            contract_type="permanent",
+            ral=30000,
+            start_date=today,
+        )
+
+        self.assertIsNone(cache.get(DASHBOARD_CACHE_KEY))
+
+    def test_cache_invalidated_on_onboarding_step_update(self):
+        """Aggiornare un OnboardingStep deve invalidare la cache.
+
+        La dashboard mostra onboarding in corso — completare uno step
+        potrebbe cambiare quel conteggio.
+        """
+        employee = Employee.objects.create(
+            first_name="Sara",
+            last_name="Neri",
+            email="sara.cache@example.com",
+            role="employee",
+            hire_date="2024-01-15",
+        )
+
+        # L'employee creation signal crea step automaticamente.
+        # Popola cache (dopo i signal di creazione).
+        self.client.get(self.url)
+        self.assertIsNotNone(cache.get(DASHBOARD_CACHE_KEY))
+
+        # Aggiorna uno step → signal invalida la cache
+        step = OnboardingStep.objects.filter(employee=employee).first()
+        if step:
+            step.is_completed = True
+            step.save()
+            self.assertIsNone(cache.get(DASHBOARD_CACHE_KEY))

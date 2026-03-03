@@ -187,7 +187,7 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
   - Onboarding in corso
 - [x] Dati grafici (API backend): crescita headcount, distribuzione per dipartimento
 - [x] Frontend: KPI cards + grafici con Chart.js (Phase 2)
-- [ ] Caching: Django cache framework con Redis (Phase 3)
+- [x] Caching: Django cache framework con Redis (Phase 3)
 - [ ] Refresh dati ogni 5 minuti (Phase 4)
 
 **Technical Notes:**
