@@ -370,5 +370,5 @@ expect(lineChart.props('data').labels).toEqual(['2025-10', '2025-11'])
 ```
 
 **Next steps:**
-- [ ] EPIC 4 Phase 3: Django Cache Framework (Redis cache backend, cache_page decorator)
+- [x] EPIC 4 Phase 3: Django Cache Framework — done in Session 16 (week-4)
 - [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling every 5 min, onUnmounted cleanup)
