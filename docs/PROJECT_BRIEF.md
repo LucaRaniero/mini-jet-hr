@@ -48,27 +48,44 @@ Browser (localhost:5173)
 |  Django + DRF    |   Backend container (Python 3.11)
 |  REST API        |   Port 8000
 +--------+---------+
-         | psycopg2
-         v
-+------------------+
-|  PostgreSQL 15   |   Database container
-|                  |   Port 5432
-+------------------+
+         |                  |
+         | psycopg2         | redis-py
+         v                  v
++------------------+  +------------------+
+|  PostgreSQL 15   |  |  Redis 7         |  DB 0: Celery broker
+|  Database        |  |  (Alpine)        |  DB 1: Django cache
++------------------+  +--------+---------+
+                               |
+                               v
+                      +------------------+
+                      |  Celery Worker   |  Async tasks
+                      |  (Python 3.11)  |  (welcome email)
+                      +------------------+
 ```
 
 ## Scope (MVP)
 
 ### EPIC 1: Employee Management (done)
-- CRUD operations via REST API
+- CRUD operations via REST API + Vue frontend
 - Soft delete pattern
-- Vue list view with role filtering and ordering
+- Role filtering and ordering
 
-### EPIC 2: Contract Management (planned)
+### EPIC 2: Contract Management (done)
 - One-to-many relation (Employee -> Contracts)
 - PDF upload and preview
-- Contract expiration alerts
+- Contract expiration alerts (4-state badges)
 
-### EPIC 3-7: See [USER_STORIES.md](USER_STORIES.md)
+### EPIC 3: Onboarding Automation (done)
+- Configurable templates + interactive checklist
+- Django Signals (auto-create steps on employee creation)
+- Welcome email (Celery async task with retry logic)
+
+### EPIC 4: Dashboard & Analytics (in progress)
+- Aggregated KPIs (employees, contracts, onboarding)
+- Chart.js visualizations (headcount trend, department distribution)
+- Redis cache with signal-based invalidation
+
+### EPIC 5-7: See [USER_STORIES.md](USER_STORIES.md)
 
 ## Learning Approach
 
@@ -77,7 +94,7 @@ This project is built as a **learning exercise** by a Senior Data Engineer (5 ye
 Key methodology:
 - **Concepts first, code second** — understand the "why" before writing
 - **SQL analogies** — every new pattern mapped to familiar SQL concepts
-- **Test-driven** — 13 backend tests + 1 frontend test covering all user stories
+- **Test-driven** — 176 automated tests (85 backend + 91 frontend)
 - **Production-quality** — code written as if deploying to production tomorrow
 
 See [learning-journal/](../learning-journal/) for detailed session notes.
@@ -86,8 +103,9 @@ See [learning-journal/](../learning-journal/) for detailed session notes.
 
 | Week | Focus | Status |
 |---|---|---|
-| 1 | Django + DRF + Vue setup | Complete |
-| 2-3 | Contract management, Auth | Planned |
-| 4-5 | Onboarding automation | Planned |
-| 6-7 | Dashboard, Reports | Planned |
-| 8 | Docker + AWS deployment | Planned |
+| 1 | Django + DRF + Vue setup, Employee CRUD | Complete |
+| 2 | Contract management (CRUD + PDF upload) | Complete |
+| 3 | Onboarding automation (signals, email, Celery) | Complete |
+| 4 | Dashboard & Analytics (API, charts, cache) | In Progress |
+| 5-6 | Auth & permissions, Reports | Planned |
+| 7-8 | Docker production + AWS deployment | Planned |

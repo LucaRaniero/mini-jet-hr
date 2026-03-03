@@ -174,7 +174,7 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 4: Dashboard e Analytics
 *Obiettivo learning: Aggregazioni, charts, caching*
 
-### US-009: Dashboard HR overview (Phase 2 done — API + Frontend charts)
+### US-009: Dashboard HR overview (Phase 3 done — API + Charts + Cache)
 **Come** responsabile HR
 **Voglio** una dashboard con KPI principali
 **Così che** possa monitorare lo stato del personale

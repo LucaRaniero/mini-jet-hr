@@ -40,7 +40,7 @@ Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/)
                      ▼             ▼
               ┌─────────────┐ ┌─────────────┐
               │   Redis 7   │ │   AWS S3    │
-              │  (Broker)   │ │  (Storage)  │
+              │(Broker+Cache)│ │  (Storage)  │
               └──────┬──────┘ └─────────────┘
                      ▼
               ┌─────────────┐
@@ -60,14 +60,16 @@ Built as preparation for a Software Engineer role at [Jet HR](https://jethr.it/)
 - [x] Onboarding automation: auto-create checklist via Django Signal on employee creation
 - [x] Welcome email: automatic email on employee creation (console backend in dev, SMTP-ready for prod)
 - [x] Celery async tasks: welcome email via Redis broker + Celery worker (retry logic, 3 attempts)
-- [x] Vue Router with 10 routes (3 employee + 3 contract + 3 onboarding template + 1 checklist)
+- [x] Dashboard API: aggregated KPIs across employees, contracts, and onboarding
+- [x] Dashboard frontend: KPI cards + Chart.js (headcount trend, department distribution)
+- [x] Redis cache: low-level cache API with signal-based invalidation (TTL 5 min)
+- [x] Vue Router with 11 routes (3 employee + 3 contract + 3 onboarding template + 1 checklist + 1 dashboard)
 - [x] Docker containerization (PostgreSQL + Redis + Django + Celery Worker + Vue)
 - [x] API documentation with drf-spectacular (Swagger UI + ReDoc)
-- [x] 152 automated tests (70 backend + 82 frontend)
+- [x] 176 automated tests (85 backend + 91 frontend)
 
 ### Planned
 - [ ] Authentication & role-based permissions
-- [ ] Dashboard & analytics
 - [ ] PDF report generation
 - [ ] AWS deployment
 - [ ] CI/CD pipeline
@@ -195,6 +197,6 @@ MIT License - This is a portfolio/learning project, feel free to use it for your
 
 ---
 
-**Current Status**: Week 3 of 8 | Last updated: 2026/02/24
+**Current Status**: Week 4 of 8 | Last updated: 2026/03/03
 
 *"The best way to learn is to build."*

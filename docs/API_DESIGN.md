@@ -497,6 +497,61 @@ When `is_completed` changes:
 
 ---
 
+## Dashboard
+
+Aggregated HR statistics endpoint. Read-only, no CRUD. Cached with Redis (TTL 5 min, invalidated on data changes).
+
+### Get Dashboard Stats
+```
+GET /api/dashboard/stats/
+```
+
+Returns aggregated KPIs and chart data across employees, contracts, and onboarding.
+
+**Response** `200 OK`:
+```json
+{
+  "employees": {
+    "active": 42,
+    "inactive": 3,
+    "new_hires": 5
+  },
+  "contracts": {
+    "expiring": 2
+  },
+  "onboarding": {
+    "in_progress": 7
+  },
+  "charts": {
+    "headcount_trend": [
+      {"month": "2024-01", "count": 3},
+      {"month": "2024-02", "count": 5}
+    ],
+    "department_distribution": [
+      {"department": "Engineering", "count": 15},
+      {"department": "HR", "count": 8}
+    ]
+  }
+}
+```
+
+**Metrics:**
+| Metric | Description |
+|---|---|
+| `employees.active` | Count of employees with `is_active=True` |
+| `employees.inactive` | Count of employees with `is_active=False` |
+| `employees.new_hires` | Active employees hired in the current month |
+| `contracts.expiring` | Contracts with `end_date` within 30 days from today |
+| `onboarding.in_progress` | Distinct employees with at least one incomplete onboarding step |
+| `charts.headcount_trend` | Active employees grouped by hire month (ascending) |
+| `charts.department_distribution` | Active employees grouped by department (descending by count) |
+
+**Caching:**
+- Responses are cached in Redis (DB 1) with a configurable TTL (default 300 seconds)
+- Cache is automatically invalidated when Employee, Contract, or OnboardingStep data changes (via Django signals)
+
+---
+
 ## CORS
 
 The API allows requests from:
