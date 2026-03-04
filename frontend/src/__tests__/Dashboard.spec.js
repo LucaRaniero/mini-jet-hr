@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import DashboardPanel from '@/components/DashboardPanel.vue'
 
@@ -52,6 +52,11 @@ async function mountDashboard(statsData = mockStats) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.useFakeTimers()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('DashboardPanel', () => {
@@ -154,6 +159,65 @@ describe('DashboardPanel', () => {
       expect(wrapper.text()).toContain('Dashboard HR')
       expect(wrapper.text()).toContain('Trend Assunzioni')
       expect(wrapper.text()).toContain('Distribuzione Dipartimenti')
+    })
+  })
+
+  describe('auto-refresh polling', () => {
+    it('fetches data again after 5 minutes', async () => {
+      await mountDashboard()
+      expect(fetchDashboardStats).toHaveBeenCalledTimes(1)
+
+      // Avanziamo il tempo di 5 minuti (fake timer)
+      vi.advanceTimersByTime(5 * 60 * 1000)
+      await flushPromises()
+
+      expect(fetchDashboardStats).toHaveBeenCalledTimes(2)
+    })
+
+    it('fetches 3 times after 10 minutes (initial + 2 intervals)', async () => {
+      await mountDashboard()
+
+      vi.advanceTimersByTime(10 * 60 * 1000)
+      await flushPromises()
+
+      expect(fetchDashboardStats).toHaveBeenCalledTimes(3)
+    })
+
+    it('stops polling when component is unmounted', async () => {
+      const wrapper = await mountDashboard()
+      expect(fetchDashboardStats).toHaveBeenCalledTimes(1)
+
+      // Smonta il componente (simula navigazione via dalla dashboard)
+      wrapper.unmount()
+
+      // Avanziamo 5 minuti — il timer dovrebbe essere stato fermato
+      vi.advanceTimersByTime(5 * 60 * 1000)
+      await flushPromises()
+
+      // Nessuna chiamata aggiuntiva: il clearInterval ha funzionato
+      expect(fetchDashboardStats).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears error on successful refresh after failure', async () => {
+      // Prima chiamata OK, seconda fallisce, terza OK
+      fetchDashboardStats
+        .mockResolvedValueOnce(mockStats)
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce(mockStats)
+
+      const wrapper = mount(DashboardPanel)
+      await flushPromises()
+      expect(wrapper.text()).not.toContain('Errore')
+
+      // Secondo tick: errore
+      vi.advanceTimersByTime(5 * 60 * 1000)
+      await flushPromises()
+      expect(wrapper.text()).toContain('Errore nel caricamento della dashboard.')
+
+      // Terzo tick: recovery — l'errore scompare
+      vi.advanceTimersByTime(5 * 60 * 1000)
+      await flushPromises()
+      expect(wrapper.text()).not.toContain('Errore')
     })
   })
 })

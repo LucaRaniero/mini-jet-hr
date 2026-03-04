@@ -83,4 +83,57 @@ with self.assertNumQueries(0):       # Zero SQL queries executed
 ```
 
 **Next steps:**
-- [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling every 5 min, onUnmounted cleanup)
+- [x] EPIC 4 Phase 4: Auto-refresh frontend (polling every 5 min, onUnmounted cleanup)
+
+---
+
+## Session 17 (2026-03-04) - Auto-refresh Polling (EPIC 4 Phase 4)
+
+**Focus**: setInterval/clearInterval polling, Vue lifecycle cleanup (onUnmounted), fake timers in Vitest
+
+**What I built:**
+- DashboardPanel.vue: extracted loadStats() function, setInterval(5min), clearInterval on unmount
+- Dashboard.spec.js: 4 new polling tests with vi.useFakeTimers() / vi.advanceTimersByTime()
+- Total: 180 tests (85 backend + 95 frontend)
+
+**What I learned:**
+- Polling = periodic API call via setInterval(), like a SQL Agent Job on a schedule
+  - setInterval returns an ID you must save to clear it later
+  - clearInterval(id) stops the timer — like sp_stop_job
+- onUnmounted lifecycle hook: cleanup code that runs when component is destroyed
+  - Without it, navigating away leaves the timer running → memory leak
+  - Like a trigger that disables an Agent Job when you close the report
+- setInterval vs setTimeout ricorsivo:
+  - setInterval: fires every N ms regardless of response time (fixed cadence)
+  - setTimeout ricorsivo: fires N ms AFTER previous call completes (drift-free but variable cadence)
+  - For 5-min dashboard refresh, fixed cadence is fine — no need for drift prevention
+- `let intervalId` vs `ref(intervalId)`: timer ID isn't used in template → no reactivity needed
+  - Rule: use ref() only for data that drives the UI, plain variables for internal bookkeeping
+- vi.useFakeTimers(): replaces real setInterval/setTimeout with controllable versions
+  - vi.advanceTimersByTime(ms): manually advance clock to trigger intervals
+  - vi.useRealTimers(): restore real timers in afterEach (test isolation)
+- Error recovery pattern: error.value = null in try block clears previous errors on successful refresh
+  - If API fails → shows error → API recovers on next tick → error disappears automatically
+  - Like an alerting system that auto-resolves when the issue is fixed
+
+**Key pattern: Lifecycle cleanup = resource management:**
+```
+onMounted    → acquire resource (start timer, open connection, subscribe)
+onUnmounted  → release resource (stop timer, close connection, unsubscribe)
+
+SQL analogy:
+BEGIN TRAN    → onMounted (acquire locks/resources)
+COMMIT/ROLLBACK → onUnmounted (release locks/resources)
+```
+
+**Key pattern: Fake timers in tests:**
+```javascript
+// Instead of waiting 5 real minutes in a test:
+vi.useFakeTimers()                    // Replace real timers
+vi.advanceTimersByTime(5 * 60 * 1000) // Jump forward 5 min instantly
+await flushPromises()                 // Let async callbacks resolve
+// Assert that the interval callback fired
+```
+
+**Next steps:**
+- [ ] EPIC 5: Authentication & Permissions (US-011, US-012)

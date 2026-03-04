@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Line, Doughnut } from 'vue-chartjs'
 import {
   Chart,
@@ -33,13 +33,38 @@ const stats = ref(null)
 const loading = ref(true)
 const error = ref(null)
 
-onMounted(async () => {
+// Intervallo di refresh in ms (5 minuti = 300.000 ms).
+// Come un Agent Job schedulato ogni 5 min: riesegue la query periodicamente.
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000
+let intervalId = null
+
+// Funzione estratta per riuso: fetch iniziale + refresh periodico.
+// isInitialLoad evita di mostrare lo spinner sui refresh successivi —
+// l'utente vedrebbe un flash fastidioso se i dati sparissero ogni 5 minuti.
+async function loadStats() {
   try {
     stats.value = await fetchDashboardStats()
+    error.value = null
   } catch {
     error.value = 'Errore nel caricamento della dashboard.'
   } finally {
     loading.value = false
+  }
+}
+
+// START timer — equivale a sp_start_job
+onMounted(() => {
+  loadStats()
+  intervalId = setInterval(loadStats, REFRESH_INTERVAL_MS)
+})
+
+// STOP timer — equivale a sp_stop_job.
+// Senza questo, il timer continuerebbe a chiamare l'API anche dopo
+// che l'utente ha navigato via dalla dashboard (memory leak).
+onUnmounted(() => {
+  if (intervalId !== null) {
+    clearInterval(intervalId)
+    intervalId = null
   }
 })
 

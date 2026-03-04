@@ -403,5 +403,25 @@
 - Constant duplication vs cross-import: duplicate string in views.py + signals.py avoids fragile import chains
 - `conftest.py` fixture pattern: autouse fixture overrides settings globally (like celery_eager_mode)
 
+### EPIC 4 Phase 4: Auto-refresh Dashboard Polling (done)
+- [x] `loadStats()`: extracted reusable fetch function from `onMounted`
+- [x] `setInterval(loadStats, 5 * 60 * 1000)`: periodic refresh every 5 minutes
+- [x] `onUnmounted` + `clearInterval`: cleanup to prevent memory leak on navigation
+- [x] Error recovery: `error.value = null` on successful refresh clears previous errors
+- [x] Tests: 4 new (5min fetch, 10min fetch, unmount cleanup, error recovery)
+- [x] Total frontend tests: 95 (91 existing + 4 polling)
+- [x] Total tests: 180 (85 backend + 95 frontend)
+
+### Concepts mastered (EPIC 4 Phase 4):
+- `setInterval(fn, ms)`: periodic execution — like SQL Agent Job on a schedule
+- `clearInterval(id)`: stop the timer — like disabling an Agent Job
+- `onUnmounted()`: Vue lifecycle cleanup hook — runs when component is destroyed (navigation, route change)
+- Memory leak prevention: always pair `setInterval` with `clearInterval` in `onUnmounted`
+- `let` vs `ref()` for timer ID: no reactivity needed for internal bookkeeping (not rendered in template)
+- `vi.useFakeTimers()`: Vitest replaces real timers with controllable versions
+- `vi.advanceTimersByTime(ms)`: manually advance clock to trigger intervals in tests
+- `vi.useRealTimers()`: restore real timers in `afterEach` for test isolation
+- Error self-healing: clear error state on successful refresh (auto-resolve alerts)
+
 ### Next steps:
-- [ ] EPIC 4 Phase 4: Auto-refresh frontend (polling every 5 min, onUnmounted cleanup)
+- [ ] EPIC 5: Authentication & Permissions (US-011, US-012)
