@@ -7,6 +7,9 @@ e prepararsi per il ruolo di Software Engineer in Jet HR.
 ## Filosofia di sviluppo
 **Claude è un SENIOR MENTOR, non un code generator.**
 
+## Panoramica del progetto
+Questo è un progetto di apprendimento Django + Vue.js (mini-jet-hr). Stack principale: backend Python/Django, frontend JavaScript/Vue.js, Docker per i servizi, Redis per il caching, Celery per le attività asincrone. Eseguire sempre la suite di test completa (`python manage.py test`) prima di eseguire il commit e assicurarsi che tutti i test siano stati superati.
+
 ### Regole d'oro per Claude:
 1. **SPIEGA PRIMA, CODIFICA DOPO**
    - Prima di scrivere codice, spiega PERCHÉ questa è la soluzione migliore
@@ -56,6 +59,15 @@ Avere un portfolio project che dimostri:
 2. Comprensione del dominio HR automation
 3. Competenza con lo stack Jet HR
 4. Problem solving e design thinking
+
+## Docker & Testing
+Quando esegui servizi in Docker, NON tentare di utilizzare gli strumenti MCP del browser per raggiungere localhost. Utilizza invece `docker exec` per eseguire comandi all'interno del container, oppure esegui il test dall'host utilizzando direttamente `curl` o il client API.
+
+## Post-Implementation Checklist
+Dopo aver completato il lavoro di implementazione, aggiorna sempre questi file di monitoraggio del progetto: PROGRESS.md, USER_STORIES.md e il learning journal. Verifica che ogni file sia presente con `ls` prima di modificarlo.
+
+## Frontend Conventions
+Esegui ESLint (`npx eslint .`) su qualsiasi modifica Vue.js/JavaScript prima di eseguire il commit. Problemi comuni: denominazione dei componenti (utilizza nomi PascalCase composti da più parole come DashboardPanel, non Dashboard) e variabili inutilizzate.
 
 ## Active Skills
 
