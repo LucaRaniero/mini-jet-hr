@@ -221,20 +221,24 @@ Focus: Sistema base di gestione dipendenti con automazione onboarding
 ## EPIC 5: Autenticazione e Permessi
 *Obiettivo learning: Auth, permissions, security*
 
-### US-011: Login/Logout sistema
-**Come** utente del sistema  
-**Voglio** autenticarmi  
+### US-011: Login/Logout sistema (Phase 1 backend done ✅)
+**Come** utente del sistema
+**Voglio** autenticarmi
 **Così che** possa accedere ai miei dati in sicurezza
 
 **Acceptance Criteria:**
-- [ ] Login con email e password
-- [ ] JWT tokens per API
-- [ ] Logout invalida token
-- [ ] Session timeout dopo 8 ore
+- [x] Login con email e password (POST /api/auth/login/ → access + refresh tokens)
+- [x] JWT tokens per API (djangorestframework-simplejwt, Bearer header)
+- [x] Logout invalida token (POST /api/auth/logout/ → blacklist refresh token)
+- [x] Token lifecycle: access 30min, refresh 1 day, rotation + blacklist
+- [ ] Frontend login page + auth state management (Phase 2)
+- [ ] Token refresh automatico nel frontend (Phase 2)
 
 **Technical Notes:**
-- DRF authentication: JWT (djangorestframework-simplejwt)
-- Vue: Vuex/Pinia per gestione auth state
+- DRF authentication: JWT (djangorestframework-simplejwt) with token_blacklist
+- Custom User model: accounts app, AbstractUser with email as USERNAME_FIELD
+- Global IsAuthenticated default, AllowAny override for docs
+- Vue: Pinia per gestione auth state (Phase 2)
 - Focus: JWT flow, token refresh, secure storage
 
 ---

@@ -424,4 +424,42 @@
 - Error self-healing: clear error state on successful refresh (auto-resolve alerts)
 
 ### Next steps:
-- [ ] EPIC 5: Authentication & Permissions (US-011, US-012)
+- [x] EPIC 5: Authentication & Permissions (US-011, US-012) — Phase 1 done
+
+---
+
+## Week 5: EPIC 5 — Authentication & Permissions
+
+### EPIC 5 Phase 1: Backend JWT Authentication (done)
+- [x] Custom User model: `accounts` app with `AbstractUser`, email as `USERNAME_FIELD`
+- [x] `UserManager`: custom manager for `create_user` / `create_superuser` (email, no username)
+- [x] `UserAdmin`: adapted Django admin for email-based user model
+- [x] `djangorestframework-simplejwt` dependency with token blacklist support
+- [x] Django settings: `AUTH_USER_MODEL`, `JWTAuthentication`, `IsAuthenticated` global default
+- [x] `SIMPLE_JWT` config: 30min access, 1 day refresh, token rotation + blacklist
+- [x] Auth endpoints: `POST /api/auth/login/`, `/refresh/`, `/logout/`
+- [x] `authenticate_client()` helper in employees/tests.py (`force_authenticate` for test isolation)
+- [x] Database reset + migration (required by `AUTH_USER_MODEL` change)
+- [x] Docker image rebuild (dependency persistence — runtime pip install is temporary)
+- [x] Tests: 10 new JWT tests (login, refresh, logout, protected endpoints)
+- [x] Total backend tests: 95 (85 existing + 10 JWT)
+- [x] Total frontend tests: 95 (unchanged)
+- [x] Total tests: 190
+
+### Concepts mastered (EPIC 5 Phase 1):
+- JWT (JSON Web Token): stateless authentication — like a tamper-proof temporary badge
+- JWT anatomy: Header.Payload.Signature — base64-encoded JSON, signed with server secret
+- Access Token: short-lived (30min) credential sent on every API call (`Authorization: Bearer <token>`)
+- Refresh Token: long-lived (1 day) used only to obtain new access tokens (like re-badging at security desk)
+- Token Rotation: each refresh generates a new refresh token + blacklists the old one
+- Blacklist: database table of revoked refresh tokens (like `DELETE FROM active_sessions`)
+- `AbstractUser`: Django's extensible User model — must be set before first migration
+- `USERNAME_FIELD = "email"`: changes login field from username to email
+- `BaseUserManager`: custom manager for user creation without username
+- `force_authenticate()`: bypass JWT parsing in tests — faster, tests auth separately
+- `IsAuthenticated` global default: all endpoints require auth unless explicitly overridden
+- `AllowAny` on Swagger docs: keep API documentation accessible without login
+- Docker image rebuild vs runtime pip install: packages installed at runtime are lost on container restart
+
+### Next steps:
+- [ ] EPIC 5 Phase 2: Frontend authentication (login page, token storage, auth state)
