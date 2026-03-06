@@ -5,6 +5,7 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.1/topics/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -40,9 +41,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
     # Local apps
+    "accounts",
     "employees",
 ]
 
@@ -138,11 +142,38 @@ MEDIA_URL = "/media/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Custom User model — DEVE essere impostato prima della prima migration.
+# Usa email come campo di login al posto di username.
+AUTH_USER_MODEL = "accounts.User"
+
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Authentication: JWT tokens (stateless, nessuna sessione server-side).
+    # Ogni request porta il token nell'header: Authorization: Bearer <token>
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    # Authorization: tutti gli endpoint richiedono autenticazione di default.
+    # Le singole view possono sovrascrivere con permission_classes = [AllowAny].
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
+# SimpleJWT — configurazione token lifecycle.
+# Access Token: breve durata, usato per ogni API call (come EXECUTE AS USER temporaneo).
+# Refresh Token: durata lunga, usato solo per ottenere un nuovo Access Token.
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True,  # Ogni refresh genera un nuovo Refresh Token
+    "BLACKLIST_AFTER_ROTATION": True,  # Il vecchio Refresh Token viene invalidato
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
 }
 
 # drf-spectacular: API documentation settings
@@ -150,6 +181,8 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Mini Jet HR API",
     "DESCRIPTION": "API per la gestione dipendenti e contratti.",
     "VERSION": "1.0.0",
+    # I docs devono restare accessibili senza autenticazione
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
 }
 
 # CORS: allow the Vue frontend dev server to call the API

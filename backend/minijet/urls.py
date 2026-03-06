@@ -20,10 +20,22 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework_simplejwt.views import (
+    TokenBlacklistView,
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("employees.urls")),
+    # JWT Authentication endpoints.
+    # login:   POST {email, password} → {access, refresh}
+    # refresh: POST {refresh}         → {access, refresh} (rotazione token)
+    # logout:  POST {refresh}         → blacklist del refresh token
+    path("api/auth/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/auth/logout/", TokenBlacklistView.as_view(), name="token_blacklist"),
     # OpenAPI schema (YAML/JSON) — il "contratto" leggibile da tool esterni
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     # Swagger UI — interfaccia interattiva per esplorare e testare l'API

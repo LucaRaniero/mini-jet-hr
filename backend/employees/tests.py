@@ -3,6 +3,7 @@ import tempfile
 from datetime import date, timedelta
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -15,8 +16,25 @@ from .models import Contract, Employee, OnboardingStep, OnboardingTemplate
 from .tasks import send_welcome_email_task
 from .views import DASHBOARD_CACHE_KEY
 
+User = get_user_model()
+
 # Directory temporanea per i media files nei test — evita di sporcare MEDIA_ROOT reale
 TEMP_MEDIA_ROOT = tempfile.mkdtemp()
+
+
+def authenticate_client(client):
+    """Crea un utente di test e autentica l'APIClient.
+
+    force_authenticate bypassa il parsing JWT — imposta direttamente
+    request.user. Più veloce e semplice per i test unitari.
+    Il flusso JWT reale è testato separatamente in accounts/tests.py.
+    """
+    user = User.objects.create_user(
+        email="testuser@minijethr.local",
+        password="testpass123",
+    )
+    client.force_authenticate(user=user)
+    return user
 
 
 class EmployeeAPITest(TestCase):
@@ -25,6 +43,7 @@ class EmployeeAPITest(TestCase):
     def setUp(self):
         """Create test data: one active employee, one inactive."""
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.mario = Employee.objects.create(
             first_name="Mario",
             last_name="Rossi",
@@ -85,6 +104,7 @@ class EmployeeCreateAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.valid_payload = {
             "first_name": "Anna",
             "last_name": "Bianchi",
@@ -128,6 +148,7 @@ class EmployeeUpdateAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.employee = Employee.objects.create(
             first_name="Mario",
             last_name="Rossi",
@@ -172,6 +193,7 @@ class EmployeeDeleteAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.employee = Employee.objects.create(
             first_name="Mario",
             last_name="Rossi",
@@ -201,6 +223,7 @@ class ContractAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         # Creare l'employee "padre" — come INSERT INTO employees prima di INSERT INTO contracts
         self.employee = Employee.objects.create(
             first_name="Mario",
@@ -311,6 +334,7 @@ class ContractDocumentAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.employee = Employee.objects.create(
             first_name="Mario",
             last_name="Rossi",
@@ -406,6 +430,7 @@ class ContractExpirationAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.employee = Employee.objects.create(
             first_name="Mario",
             last_name="Rossi",
@@ -458,6 +483,7 @@ class OnboardingTemplateAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.url = "/api/onboarding-templates/"
         self.valid_payload = {
             "name": "Firma contratto",
@@ -523,6 +549,7 @@ class OnboardingStepAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.employee = Employee.objects.create(
             first_name="Mario",
             last_name="Rossi",
@@ -768,6 +795,7 @@ class OnboardingSignalTest(TestCase):
         OnboardingTemplate.objects.create(name="Setup email", order=2)
 
         client = APIClient()
+        authenticate_client(client)
         response = client.post(
             "/api/employees/",
             {
@@ -899,6 +927,7 @@ class WelcomeEmailTest(TestCase):
     def test_api_create_triggers_email(self):
         """POST /api/employees/ should trigger signal and send welcome email."""
         client = APIClient()
+        authenticate_client(client)
         client.post(
             "/api/employees/",
             {
@@ -927,6 +956,7 @@ class DashboardAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.url = "/api/dashboard/stats/"
 
     def test_dashboard_returns_200(self):
@@ -1303,6 +1333,7 @@ class DashboardCacheTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.user = authenticate_client(self.client)
         self.url = "/api/dashboard/stats/"
         # Pulisci cache prima di ogni test (isolamento)
         cache.clear()
